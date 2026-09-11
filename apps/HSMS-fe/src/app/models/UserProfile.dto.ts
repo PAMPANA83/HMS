@@ -1,0 +1,37 @@
+export interface UserProfile {
+  id: number;
+  companyId: number;
+  companyName: string;
+  branchId: number;
+  branchName: string | null;
+  departmentId: number;
+  departmentName: string;
+  roleId: number;
+  roleName: string;
+  roleCode: string;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  gender: string;
+  dateOfBirth: string;
+  email: string;
+  phone: string;
+  emergencyContact: string;
+  addressLine1: string;
+  cityId: number;
+  cityName: string;
+  stateId: number;
+  stateName: string;
+  countryId: number;
+  countryName: string;
+  postalCode: string;
+  isActive: boolean;
+  joinedDate: string;
+  createdAt: string;
+  createdBy: number;
+  createdOn: string;
+  updatedAt: string;
+  updatedBy: number | null;
+  profileImageUrl: string | null;
+}

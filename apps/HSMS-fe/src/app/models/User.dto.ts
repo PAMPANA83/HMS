@@ -1,0 +1,63 @@
+export interface CreateUserDto { 
+   companyId: number;
+  branchId: number;
+  departmentId: number;
+  roleId: number;
+  employeeCode: string;
+  firstName: string;
+  lastName?: string;
+  gender: string;
+  dateOfBirth?: string;
+  email: string;
+  password: string;
+  phone: string;
+  emergencyContact?: string;
+  addressLine1?: string;
+  cityId: number;
+  stateId: number;
+  countryId: number;
+  postalCode?: string;
+  isActive: boolean;
+  joinedDate?: string;
+  profileImageUrl?: string;
+  createdBy:number;
+}
+
+export  interface EmployeeDto {
+  id: number;
+  companyId: number;
+  companyName: string;
+  branchId: number;
+  branchName: string | null;
+  departmentId: number;
+  departmentName: string;
+  roleId: number;
+  roleName: string;
+  roleCode: string;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  gender: string;
+  dateOfBirth: string | null;
+  email: string;
+  phone: string;
+  emergencyContact: string | null;
+  addressLine1: string | null;
+  cityId: number;
+  cityName: string;
+  stateId: number;
+  stateName: string;
+  countryId: number;
+  countryName: string;
+  postalCode: string | null;
+  isActive: boolean;
+  joinedDate: string;
+  createdAt: string;
+  createdBy: string | null;
+  updatedAt: string;
+  updatedBy: string | null;
+  passwordHash: string | null;
+  profileImageUrl: string | null;
+  CreatedOn:string|null;
+}

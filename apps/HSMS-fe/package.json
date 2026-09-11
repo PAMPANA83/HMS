@@ -1,0 +1,15 @@
+{
+  "name": "@hsms/HSMS-fe",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "datatables.net-dt": "^3.0.3",
+    "datatables.net-react": "^1.0.2",
+    "datatables.net-responsive-dt": "^4.0.3",
+    "datatables.net-select-dt": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6"
+  }
+}

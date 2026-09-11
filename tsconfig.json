@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/HSMS-fe-e2e"
+    },
+    {
+      "path": "./apps/HSMS-fe"
+    },
+    {
+      "path": "./libs/ui"
+    }
+  ]
+}
