@@ -10,7 +10,6 @@ namespace HSMS.Application.IServices
 {
     public interface IBillingService
     {
-
         Task<Result<string>> CreateAsync(CreateBillingDto dto);
     }
     

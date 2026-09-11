@@ -18,7 +18,6 @@ namespace HSMS.Domain.Domains
         public string PaymentMethod { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public int? CreatedBy { get; set; }
-
         public Billingtable(int? id, string? billNumber, int patientId, int? appointmentId, decimal? totalAmount, decimal? paidAmount, string? paymentStatus, string paymentMethod, DateTimeOffset createdAt, int? createdBy)
         {
             Id = id;

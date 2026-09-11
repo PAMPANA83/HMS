@@ -48,7 +48,6 @@ namespace HSMS.infrastructure.Repositories
 
             return _res;
         }
-
         public async Task<string> GetBillNumberAsync()
         {
             int currentYear = DateTime.UtcNow.Year;
@@ -68,7 +67,6 @@ namespace HSMS.infrastructure.Repositories
                 return newBillNumber;
             }
         }
-
         public async Task<Billingtable?> GetByIdAsync(int id)
         {
            var res= await _context.Billings.FirstOrDefaultAsync(b => b.Id == id);

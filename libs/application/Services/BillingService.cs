@@ -21,7 +21,6 @@ namespace HSMS.Application.Services
             _unitOfWork = unitOfWork;
             _cache = cache;
         }
-
         public async Task<Result<string>> CreateAsync(CreateBillingDto dto)
         {
             try
