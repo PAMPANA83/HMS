@@ -51,6 +51,7 @@ builder.Services.AddScoped<ICompanyAssentRepository, CompanyAssentRepository>();
 builder.Services.AddScoped<IDoctorRespository, DoctorRespository>();
 builder.Services.AddScoped<IPatientRepository,PatientRepository>();
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+builder.Services.AddScoped<IBillingRespository, BillingRespository>();
 #endregion
 
 #region Register Services
