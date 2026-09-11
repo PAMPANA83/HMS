@@ -69,6 +69,7 @@ builder.Services.AddSingleton<ITokenRevocationService, TokenRevocationService>()
 builder.Services.AddScoped<IDoctorServices, DoctorServices>();
 builder.Services.AddScoped<IPatientServices, PatientServices>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IBillingService, BillingService>();
 #endregion
 
 //builder.Services.AddSwaggerGen(c =>
