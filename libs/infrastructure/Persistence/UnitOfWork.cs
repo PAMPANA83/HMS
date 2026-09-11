@@ -26,6 +26,8 @@ namespace HSMS.infrastructure.Persistence
 
         public IAppointmentRepository _appointment { get; }
 
+        public IBillingRespository _billing { get; }
+
         public UnitOfWork(
             ApplicationDbContext context,
             ICountryRepository countryRepository,
@@ -35,7 +37,7 @@ namespace HSMS.infrastructure.Persistence
             IRolePermissionRepository rolePermissionRepository,IPermissionRepository permission,
             IUserRepositories repositories, IDepartmentsRespository departments,
             ICompanyAssentRepository companyAssentRepository, IDoctorRespository doctorRespository,
-            IPatientRepository patientRepository,IAppointmentRepository appointmentRepository)
+            IPatientRepository patientRepository,IAppointmentRepository appointmentRepository, IBillingRespository billingRespository)
         {
             _context = context;
             Countries = countryRepository;
@@ -53,7 +55,8 @@ namespace HSMS.infrastructure.Persistence
             doctor = doctorRespository;
             _patient= patientRepository;
             _appointment = appointmentRepository;
-            
+            _billing = billingRespository;
+
         }
 
         public ICountryRepository Contries => Countries;
@@ -70,8 +73,8 @@ namespace HSMS.infrastructure.Persistence
         public ICompanyAssentRepository companyAssents => companyAssent;
         public IDoctorRespository doctorRespositorys => doctor;
         public IPatientRepository patients => _patient;
-
         public IAppointmentRepository appointment => _appointment;
+        public IBillingRespository billingRespository => _billing;
         public async Task<int> SaveChangesAsync()
         {
             return await _context.SaveChangesAsync();

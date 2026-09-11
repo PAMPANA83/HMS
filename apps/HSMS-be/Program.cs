@@ -51,6 +51,7 @@ builder.Services.AddScoped<ICompanyAssentRepository, CompanyAssentRepository>();
 builder.Services.AddScoped<IDoctorRespository, DoctorRespository>();
 builder.Services.AddScoped<IPatientRepository,PatientRepository>();
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+builder.Services.AddScoped<IBillingRespository, BillingRespository>();
 #endregion
 
 #region Register Services
@@ -68,6 +69,8 @@ builder.Services.AddSingleton<ITokenRevocationService, TokenRevocationService>()
 builder.Services.AddScoped<IDoctorServices, DoctorServices>();
 builder.Services.AddScoped<IPatientServices, PatientServices>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IBillingService, BillingService>();
+
 #endregion
 
 //builder.Services.AddSwaggerGen(c =>

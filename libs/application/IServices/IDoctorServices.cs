@@ -17,7 +17,6 @@ namespace HSMS.Application.IServices
         Task<Result<List<DoctorDropdown>>> GetAllDoctorDetails();
         Task<Result<string>> UpdateDocbyId(UpdateDoctorDto dto);
         Task<Result<string>> DeleteDoctorbyId(int Id);
-
         Task<Result<List<DoctorDropdown>>> GetAllDoctorsDetails();
 
     }

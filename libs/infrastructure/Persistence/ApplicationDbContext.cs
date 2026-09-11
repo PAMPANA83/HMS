@@ -24,7 +24,8 @@ namespace HSMS.infrastructure.Persistence
         public DbSet<CompanyAssetEntity> CompanyAssets { get; set; }
         public DbSet<DoctorEntity> Doctors { get; set; }
         public DbSet<PatientEntity> Patients { get; set; }
-        public DbSet<AppointmentEntity> appointment { get; set; }
+        public DbSet<AppointmentEntity> Appointments  { get; set; }
+        public DbSet<BillingEntity> Billings { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
