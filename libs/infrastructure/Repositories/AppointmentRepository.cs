@@ -28,7 +28,7 @@ namespace HSMS.infrastructure.Repositories
             obj.Status = dto.Status;
             obj.ReasonForVisit= dto.ReasonForVisit;
             obj.CreatedAt = (DateTimeOffset)dto.CreatedAt;
-            await _context.appointment.AddRangeAsync(obj);
+            await _context.Appointments.AddRangeAsync(obj);
             return dto;
 
         }
@@ -43,13 +43,13 @@ namespace HSMS.infrastructure.Repositories
             obj.Status = dto.Status;
             obj.ReasonForVisit = dto.ReasonForVisit;
             obj.CreatedAt = (DateTimeOffset)dto.CreatedAt;
-            _context.appointment.Remove(obj);
+            _context.Appointments.Remove(obj);
             return dto;
         }
 
         public async Task<List<Appointmenttable>> GetAllAppointments()
         {
-            var res = await _context.appointment.ToListAsync();
+            var res = await _context.Appointments.ToListAsync();
             if (res==null|| res.Count == 0)
             {
                 return null;
@@ -61,7 +61,7 @@ namespace HSMS.infrastructure.Repositories
 
         public async Task<List<Appointmenttable>> GetAllAppointmentsbyPatientId(int Id)
         {
-            var res = await _context.appointment.Where(x=>x.PatientId==Id).ToListAsync();
+            var res = await _context.Appointments.Where(x=>x.PatientId==Id).ToListAsync();
             if (res == null || res.Count == 0)
             {
                 return null;
@@ -73,7 +73,7 @@ namespace HSMS.infrastructure.Repositories
 
         public async Task<Appointmenttable> GetAppointByID(int Id)
         {
-            var res=await _context.appointment.AsNoTracking().FirstOrDefaultAsync(x=>x.AppointmentId == Id);
+            var res=await _context.Appointments.AsNoTracking().FirstOrDefaultAsync(x=>x.AppointmentId == Id);
             if(res==null)
             {
                 return null;
@@ -93,7 +93,7 @@ namespace HSMS.infrastructure.Repositories
             obj.Status = dto.Status;
             obj.ReasonForVisit = dto.ReasonForVisit;
             obj.CreatedAt = (DateTimeOffset)dto.CreatedAt;
-            _context.appointment.Update(obj);
+            _context.Appointments.Update(obj);
             return dto;
         }
     }
