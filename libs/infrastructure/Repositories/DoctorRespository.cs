@@ -76,6 +76,18 @@ namespace HSMS.infrastructure.Repositories
             return _res;
         }
 
+        public async Task<Doctorstable?> GetByPatientIDAsync(int id)
+        {
+            var res = await _context.Doctors.FirstOrDefaultAsync(x => x.UserId == id);
+            if (res == null)
+            {
+                return null;
+            }
+            var _res = new Doctorstable(res.Id, res.BranchId, res.UserId, res.DepartmentId, res.Specialization, res.LicenseNumber,
+                res.ConsultationFee, res.IsActive, res.CreatedAt, res.CreatedBy, res.UpdatedAt, res.UpdatedBy);
+            return _res;
+        }
+
         public async Task<Doctorstable> UpdateAsync(Doctorstable doc)
         {
             var res = await _context.Doctors.FirstOrDefaultAsync(x => x.Id == doc.Id);

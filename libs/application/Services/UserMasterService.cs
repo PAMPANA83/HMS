@@ -49,7 +49,7 @@ namespace HSMS.Application.Services
                         ErrorMessage = "Failed to create user"
                     };
                 }
-
+                _cache.Remove(CacheKeys.UsersList);
                 await _unitOfWork.CommitAsync();
                 return new Result<string>
                 {

@@ -37,11 +37,11 @@ namespace HSMS.infrastructure.Entities
 
         [MaxLength(50)]
         [Column("payment_status")]
-        public string PaymentStatus { get; set; } = "Pending";
+        public string? PaymentStatus { get; set; } = "Pending";
 
         [MaxLength(50)]
         [Column("payment_method")]
-        public string PaymentMethod { get; set; }
+        public string?PaymentMethod { get; set; }
 
         [Column("created_at")]
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

@@ -9,10 +9,7 @@ namespace HSMS.contracts.Dto
     public class CreateBillingDto
     {
         public int PatientId { get; set; }
-        public int? AppointmentId { get; set; }
-        public decimal TotalAmount { get; set; }
-        public decimal PaidAmount { get; set; }
-        public string? PaymentMethod { get; set; }
+        public int? AppointmentId { get; set; }       
         public int? CreatedBy { get; set; }
     }
 }

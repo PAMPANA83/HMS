@@ -29,6 +29,5 @@ namespace HSMS.Application.UoW
         Task CommitAsync();
         Task RollbackAsync();
         IBillingRespository billingRespository { get; }
-
--    }
+    }
 }
