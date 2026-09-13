@@ -73,9 +73,12 @@ export function CreatePatient() {
         isActive: values.isActive ?? true,
       };
 
-      await createPatiemts(payload);
+        const res=await createPatiemts(payload);
+        if(res.success)
+        {
       message.success("Patient created successfully!");
       navigate("/patient");
+      }
     } catch (error: any) {
       console.error("Error creating patient:", error);
       message.error(

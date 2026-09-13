@@ -26,6 +26,8 @@ import type { ColumnsType } from "antd/es/table/interface";
 import { useNavigate } from "react-router-dom";
 import { AppointmentData } from "../models/Appointment.dto";
 import { getAllAppointments, UpdatestatusAppointment } from "../services/Appointment.service";
+import{CreateBillingDto} from "../models/Billing.dto"
+import { createNewBilling } from "../services/Billing.service";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -90,8 +92,22 @@ export function Appointment() {
     setUpdating(true);
     try {
       await UpdatestatusAppointment(payload);
+ 
+// Auto-generate bill if status is updated to Checked-In
+      if (newStatus === "Checked-In") {
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+        const billingPayload: CreateBillingDto = {
+          patientId: selectedAppointment.patientId,
+          appointmentId: selectedAppointment.appointmentId,    
+          createdBy: storedUser?.id || null,
+        };
+        await createNewBilling(billingPayload);        
+      }
       message.success(`Status updated to "${newStatus}" successfully.`);
       setIsModalOpen(false);
+
+
+
       fetchAppointments();
     } catch (error) {
       console.error("Failed to update status:", error);

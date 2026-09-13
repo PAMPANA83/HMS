@@ -24,5 +24,6 @@ namespace HSMS.shared.Helpers
         public const string DoctorList = "Doc_List";
         public const string PatientList = "Patient_list";
         public const string AppointmentList = "Appointment_list";
+        public const string BillingList = "Billing_list";
     }
 }

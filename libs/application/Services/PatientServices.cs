@@ -63,8 +63,8 @@ namespace HSMS.Application.Services
                         ErrorMessage = "Failed to create Appointment",
                     };
                 }
-
-
+                await _unitOfWork.CommitAsync();
+                _cache.Remove(CacheKeys.AppointmentList);
                 return new Result<string>
                 {
                     Data = "Patient created successfully",

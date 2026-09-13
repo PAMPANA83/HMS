@@ -13,7 +13,9 @@ namespace HSMS.Application.IRepositories
         Task<Billingtable?> GetByIdAsync(int id);
         Task<Billingtable> CreateAsync(Billingtable dto);
         Task<List<Billingtable>> GetBillingAsync();
-
+        Task<Billingtable> UpdateBillingAsync(Billingtable dto);
         Task<string> GetBillNumberAsync();
+
+        Task<Billingtable?> GetByBillNumberAsync(string billNumber);
     }
 }

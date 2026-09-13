@@ -17,5 +17,6 @@ namespace HSMS.Application.IRepositories
         Task<Doctorstable> UpdateAsync(Doctorstable doc);
         Task<Doctorstable> DeleteAsync(Doctorstable doctor);
         Task DeleteAsync(DoctorDto? res);
+        Task<Doctorstable?> GetByPatientIDAsync(int id);
     }
 }

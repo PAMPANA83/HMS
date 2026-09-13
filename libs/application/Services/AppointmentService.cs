@@ -131,11 +131,12 @@ namespace HSMS.Application.Services
                         ErrorMessage = "No record found"
                     };
                 }
-
+                var excludedStatuses = new[] { "Completed", "Cancelled" };
                 var result = (from r in res
                               join p in res_patient on r.PatientId equals p.PatientId
                               join d in res_doctor on r.DoctorId equals d.Id
                               where d.EmployeeCode.StartsWith('D')
+                            //  && !excludedStatuses.Contains(r.Status)
                               select new AppointmentDto
                               {
                                   AppointmentId = (int)r.AppointmentId,
@@ -183,7 +184,7 @@ namespace HSMS.Application.Services
                 {
 
 
-                    var _res = cachedData.Where(x => x.AppointmentId == Id).ToList();
+                    var _res = cachedData.Where(x => x.PatientId == Id).ToList();
                     return new Result<List<AppointmentDto>>
                     {
                         Data = _res,
@@ -216,11 +217,13 @@ namespace HSMS.Application.Services
                         ErrorMessage = "No record found"
                     };
                 }
-
+                var excludedStatuses = new[] { "Completed", "Cancelled" };
                 var result = (from r in res
+
                               join p in res_patient on r.PatientId equals p.PatientId
                               join d in res_doctor on r.DoctorId equals d.Id
                               where d.EmployeeCode.StartsWith('D') && p.PatientId == Id
+                             // && !excludedStatuses.Contains(r.Status)
                               select new AppointmentDto
                               {
                                   AppointmentId = (int)r.AppointmentId,
@@ -236,7 +239,7 @@ namespace HSMS.Application.Services
                                   DoctorName = d.FirstName + " " + d.LastName
 
                               }
-                           ).ToList();
+                           ).OrderByDescending(x=>x.AppointmentDateTime).ToList();
               
 
                 return new Result<List<AppointmentDto>>
