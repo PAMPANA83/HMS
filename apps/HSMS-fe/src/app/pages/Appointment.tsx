@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  Table,
   Tag,
   Button,
   Card,
@@ -14,6 +13,7 @@ import {
   Tooltip,
   Modal,
 } from "antd";
+import DataTable, { type TableColumn } from "react-data-table-component";
 import {
   SearchOutlined,
   ReloadOutlined,
@@ -22,7 +22,6 @@ import {
   MedicineBoxOutlined,
   SyncOutlined,
 } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table/interface";
 import { useNavigate } from "react-router-dom";
 import { AppointmentData } from "../models/Appointment.dto";
 import { getAllAppointments, UpdatestatusAppointment } from "../services/Appointment.service";
@@ -137,62 +136,66 @@ export function Appointment() {
     return matchesSearch && matchesStatus;
   });
 
-  const columns: ColumnsType<AppointmentData> = [
+  const columns: TableColumn<AppointmentData>[] = [
     {
-      title: "App ID",
-      dataIndex: "appointmentId",
-      key: "appointmentId",
-      render: (text) => <strong>{text ?? "N/A"}</strong>,
+      name: "App ID",
+      selector: (row) => row.appointmentId ?? 0,
+      sortable: true,
+      cell: (row) => <strong>{row.appointmentId ?? "N/A"}</strong>,
     },
     {
-      title: "First Name",
-      dataIndex: "firstName",
-      key: "firstName",
+      name: "First Name",
+      selector: (row) => row.firstName || "N/A",
+      sortable: true,
+      hide: 768,
     },
     {
-      title: "Last Name",
-      dataIndex: "lastName",
-      key: "lastName",
+      name: "Last Name",
+      selector: (row) => row.lastName || "N/A",
+      sortable: true,
+      hide: 768,
     },
     {
-      title: "Doctor",
-      dataIndex: "doctorName",
-      key: "doctorName",
+      name: "Doctor",
+      selector: (row) => row.doctorName || "N/A",
+      sortable: true,
     },
     {
-      title: "Date & Time",
-      dataIndex: "appointmentDateTime",
-      key: "appointmentDateTime",
-      render: (dateTime: string) =>
-        dateTime ? new Date(dateTime).toLocaleString() : "N/A",
-      sorter: (a, b) => {
+      name: "Date & Time",
+      selector: (row) => row.appointmentDateTime || "",
+      sortable: true,
+      cell: (row) =>
+        row.appointmentDateTime ? new Date(row.appointmentDateTime).toLocaleString() : "N/A",
+      sortFunction: (a, b) => {
         const timeA = a.appointmentDateTime ? new Date(a.appointmentDateTime).getTime() : 0;
         const timeB = b.appointmentDateTime ? new Date(b.appointmentDateTime).getTime() : 0;
         return timeA - timeB;
       },
     },
     {
-      title: "Reason for Visit",
-      dataIndex: "reasonForVisit",
-      key: "reasonForVisit",
-      ellipsis: true,
+      name: "Reason for Visit",
+      selector: (row) => row.reasonForVisit || "N/A",
+      sortable: true,
+      hide: 768,
+      wrap: true,
     },
     {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status: string) => {
+      name: "Status",
+      selector: (row) => row.status || "Scheduled",
+      sortable: true,
+      cell: (row) => {
+        const status = row.status || "Scheduled";
         let color = "blue";
         if (status === "Completed") color = "green";
         if (status === "Cancelled") color = "red";
         if (status === "Pending") color = "gold";
-        return <Tag color={color}>{status || "Scheduled"}</Tag>;
+        return <Tag color={color}>{status}</Tag>;
       },
     },
     {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => {
+      name: "Actions",
+      button: true,
+      cell: (record) => {
         const isCompletedOrCancelled =
           record.status === "Completed" || record.status === "Cancelled";
 
@@ -219,8 +222,8 @@ export function Appointment() {
   ];
 
   return (
-    <div style={{ padding: "24px" }}>
-      <Card>
+    <div className="appointment-page" style={{ padding: "24px" }}>
+      <Card className="appointment-card">
         <Row justify="space-between" align="middle" style={{ marginBottom: "20px" }}>
           <Col>
             <Title level={3} style={{ margin: 0 }}>
@@ -270,12 +273,19 @@ export function Appointment() {
           </Col>
         </Row>
 
-        <Table
+        <DataTable
+          className="appointment-data-table"
           columns={columns}
-          dataSource={filteredAppointments}
-          rowKey={(record) => record.appointmentId || record.appointmentDateTime || Math.random().toString()}
-          loading={loading}
-          pagination={{ pageSize: 10, showSizeChanger: true }}
+          data={filteredAppointments}
+          keyField="appointmentId"
+          pagination
+          paginationPerPage={10}
+          paginationRowsPerPageOptions={[10, 20, 50]}
+          progressPending={loading}
+          persistTableHead
+          highlightOnHover
+          responsive
+          noDataComponent={<div className="py-4 text-muted">No appointments found</div>}
         />
       </Card>
 

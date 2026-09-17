@@ -1,36 +1,20 @@
-import {
-  Table,
-  Card,
-  Button,
-  Modal,
-  Input,
-  message,
-  Select,
-  Tag,
-  Space,
-  Row,
-  Col,
-  Typography,
-  Tooltip,
-  Avatar,
-} from "antd";
-import type { TableProps } from "antd";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Button, Card, Col, Form, Modal, Row } from "react-bootstrap";
 import {
-  DeleteOutlined,
-  SearchOutlined,
-  ReloadOutlined,
-  EyeOutlined,
-  PlusOutlined,
-  UserOutlined,
-  FilterOutlined,
-} from "@ant-design/icons";
+  ArrowClockwise,
+  EyeFill,
+  Filter,
+  PersonCircle,
+  PlusLg,
+  Search,
+  TrashFill,
+} from "react-bootstrap-icons";
+import DataTable, { type TableColumn } from "react-data-table-component";
+import { message } from "antd";
 
 import { getUser, deleteUser } from "../services/UserLogin.service";
 import { EmployeeDto } from "../models/User.dto";
-
-const { Title, Text } = Typography;
 
 const extractDataArray = <T,>(result: any): T[] => {
   if (Array.isArray(result)) return result;
@@ -43,12 +27,8 @@ export function User() {
   const navigate = useNavigate();
   const [users, setUsers] = useState<EmployeeDto[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // Filter States
   const [searchText, setSearchText] = useState("");
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string | undefined>(undefined);
-
-  // Detail Modal State
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<EmployeeDto | null>(null);
 
@@ -70,29 +50,25 @@ export function User() {
     loadUsers();
   }, [loadUsers]);
 
-  // Extract unique role options dynamically from loaded users
   const roleOptions = useMemo(() => {
-    const rolesMap = new Map();
+    const rolesMap = new Map<string, string>();
     users.forEach((user) => {
       if (user.roleCode && user.roleName) {
         rolesMap.set(user.roleCode, user.roleName);
       }
     });
+
     return Array.from(rolesMap.entries()).map(([code, name]) => ({
       value: code,
       label: `${name} (${code})`,
     }));
   }, [users]);
 
-  // Filtered Data Computation
   const filteredUsers = useMemo(() => {
     return users.filter((item) => {
-      const matchesRole = selectedRoleFilter 
-        ? item.roleCode === selectedRoleFilter 
-        : true;
-      
+      const matchesRole = selectedRoleFilter ? item.roleCode === selectedRoleFilter : true;
       const searchLower = searchText.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         !searchText ||
         item.fullName?.toLowerCase().includes(searchLower) ||
         item.employeeCode?.toLowerCase().includes(searchLower) ||
@@ -105,156 +81,133 @@ export function User() {
 
   const handleDelete = useCallback(
     async (id: number) => {
-      Modal.confirm({
-        title: "Delete User?",
-        content: "This action cannot be undone.",
-        okText: "Delete",
-        okType: "danger",
-        cancelText: "Cancel",
-        onOk: async () => {
-          try {
-            await deleteUser(id);
-            message.success("User deleted successfully");
-            await loadUsers();
-          } catch (error: any) {
-            console.error("Delete error:", error);
-            message.error(error?.response?.data?.message || "Failed to delete user");
-          }
-        },
-      });
+      if (!window.confirm("Delete this user? This action cannot be undone.")) {
+        return;
+      }
+
+      try {
+        await deleteUser(id);
+        message.success("User deleted successfully");
+        await loadUsers();
+      } catch (error: any) {
+        console.error("Delete error:", error);
+        message.error(error?.response?.data?.message || "Failed to delete user");
+      }
     },
     [loadUsers]
   );
 
-  const columns: TableProps<EmployeeDto>["columns"] = useMemo(
+  const columns: TableColumn<EmployeeDto>[] = useMemo(
     () => [
       {
-        title: "Employee Code",
-        dataIndex: "employeeCode",
-        key: "employeeCode",
-        width: 150,
-        fixed: "left",
-        render: (code: string) => (
-          <span style={{ 
-            background: "#eff6ff", 
-            padding: "2px 8px", 
-            borderRadius: "6px", 
-            border: "1px solid #bfdbfe", 
-            fontWeight: 500,
-            color: "#1d4ed8",
-            fontSize: "12px",
-            fontFamily: "monospace"
-          }}>
-            {code || "-"}
+        name: "Employee Code",
+        selector: (row) => row.employeeCode || "-",
+        sortable: true,
+        width: "160px",
+        cell: (row) => (
+          <span className="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 fw-semibold">
+            {row.employeeCode || "-"}
           </span>
         ),
       },
       {
-        title: "Full Name",
-        dataIndex: "fullName",
-        key: "fullName",
-        width: 200,
-        ellipsis: true,
-        render: (name: string) => (
-          <Space size={10}>
-            <Avatar size="small" style={{ backgroundColor: "#3b82f6", fontWeight: 600 }}>
-              {name ? name.charAt(0).toUpperCase() : <UserOutlined />}
-            </Avatar>
-            <Text strong style={{ color: "#1e293b" }}>{name || "-"}</Text>
-          </Space>
+        name: "Full Name",
+        selector: (row) => row.fullName || "-",
+        sortable: true,
+        minWidth: "220px",
+        cell: (row) => (
+          <div className="d-flex align-items-center gap-2 py-2">
+            <div
+              className="d-flex align-items-center justify-content-center rounded-circle text-white fw-semibold"
+              style={{
+                width: 28,
+                height: 28,
+                backgroundColor: "#3b82f6",
+                fontSize: 12,
+              }}
+            >
+              {row.fullName ? row.fullName.charAt(0).toUpperCase() : <PersonCircle size={14} />}
+            </div>
+            <span className="fw-semibold text-dark">{row.fullName || "-"}</span>
+          </div>
         ),
       },
       {
-        title: "Role",
-        dataIndex: "roleName",
-        key: "roleName",
-        width: 200,
-        render: (role: string, record) => (
+        name: "Role",
+        selector: (row) => row.roleName || "-",
+        sortable: true,
+        minWidth: "220px",
+        cell: (row) => (
           <div>
-            <Text style={{ color: "#334155", display: "block" }}>{role || "-"}</Text>
-            {record.roleCode && (
-              <span style={{ 
-                background: "#f0fdf4", 
-                color: "#15803d", 
-                border: "1px solid #bbf7d0", 
-                padding: "1px 6px", 
-                borderRadius: "4px", 
-                fontSize: "11px",
-                fontWeight: 500
-              }}>
-                {record.roleCode}
+            <div className="text-dark">{row.roleName || "-"}</div>
+            {row.roleCode && (
+              <span className="badge rounded-pill bg-success-subtle text-success border border-success-subtle mt-1">
+                {row.roleCode}
               </span>
             )}
           </div>
         ),
       },
       {
-        title: "Department",
-        dataIndex: "departmentName",
-        key: "departmentName",
-        width: 160,
-        render: (dept: string) => <Text style={{ color: "#475569" }}>{dept || "-"}</Text>,
+        name: "Department",
+        selector: (row) => row.departmentName || "-",
+        sortable: true,
+        hide: 768,
+        minWidth: "180px",
+        cell: (row) => <span className="text-secondary">{row.departmentName || "-"}</span>,
       },
       {
-        title: "Email",
-        dataIndex: "email",
-        key: "email",
-        width: 220,
-        ellipsis: true,
-        render: (email: string) => <Text style={{ color: "#64748b" }}>{email || "-"}</Text>,
+        name: "Email",
+        selector: (row) => row.email || "-",
+        sortable: true,
+        minWidth: "250px",
+        hide: 980,
+        cell: (row) => <span className="text-secondary">{row.email || "-"}</span>,
       },
       {
-        title: "Status",
-        dataIndex: "isActive",
-        key: "isActive",
-        width: 110,
-        align: "center",
-        render: (isActive: boolean) => (
-          <span style={{
-            background: isActive ? "#f0fdf4" : "#fef2f2",
-            color: isActive ? "#15803d" : "#b91c1c",
-            border: `1px solid ${isActive ? "#bbf7d0" : "#fecaca"}`,
-            padding: "2px 10px",
-            borderRadius: "12px",
-            fontSize: "12px",
-            fontWeight: 500,
-            display: "inline-block"
-          }}>
-            {isActive ? "Active" : "Inactive"}
+        name: "Status",
+        selector: (row) => (row.isActive ? "Active" : "Inactive"),
+        sortable: true,
+        width: "120px",
+        center: true,
+        cell: (row) => (
+          <span
+            className={`badge rounded-pill ${row.isActive ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle"}`}
+            style={{ fontWeight: 500 }}
+          >
+            {row.isActive ? "Active" : "Inactive"}
           </span>
         ),
       },
       {
-        title: "Actions",
-        key: "actions",
-        width: 110,
-        fixed: "right",
-        align: "center",
-        render: (_: any, record: EmployeeDto) => (
-          <Space size={6}>
-            <Tooltip title="View Details">
-              <Button
-                type="text"
-                icon={<EyeOutlined />}
-                size="small"
-                onClick={() => {
-                  setSelectedUser(record);
-                  setIsDetailModalOpen(true);
-                }}
-                style={{ background: "#f8fafc", borderRadius: "6px", width: 30, height: 30, color: "#3b82f6" }}
-              />
-            </Tooltip>
-            <Tooltip title="Delete">
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-                size="small"
-                onClick={() => handleDelete(record.id)}
-                style={{ background: "#fef2f2", borderRadius: "6px", width: 30, height: 30 }}
-              />
-            </Tooltip>
-          </Space>
+        name: "Actions",
+        button: true,
+        width: "120px",
+        center: true,
+        cell: (row) => (
+          <div className="d-flex gap-2 justify-content-center">
+            <Button
+              variant="outline-primary"
+              size="sm"
+              className="d-flex align-items-center justify-content-center"
+              onClick={() => {
+                setSelectedUser(row);
+                setIsDetailModalOpen(true);
+              }}
+              aria-label="View user"
+            >
+              <EyeFill size={14} />
+            </Button>
+            <Button
+              variant="outline-danger"
+              size="sm"
+              className="d-flex align-items-center justify-content-center"
+              onClick={() => handleDelete(row.id)}
+              aria-label="Delete user"
+            >
+              <TrashFill size={14} />
+            </Button>
+          </div>
         ),
       },
     ],
@@ -262,186 +215,183 @@ export function User() {
   );
 
   return (
-    <div style={{ padding: "28px", background: "#f8fafc", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 1500, margin: "0 auto" }}>
-        
-        {/* Modern Header Section */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <div>
-            <Title level={3} style={{ margin: 0, fontWeight: 700, color: "#0f172a" }}>User & Employee Management</Title>
-            <Text type="secondary" style={{ fontSize: "14px" }}>Manage employee directories, organizational roles, and user access parameters.</Text>
+    <div className="bg-light min-vh-100 p-3 p-md-4">
+      <div className="mx-auto" style={{ maxWidth: 1500 }}>
+        <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+          <div className="flex-grow-1">
+            <h3 className="mb-1 fw-bold text-dark">User & Employee Management</h3>
+            <p className="text-muted mb-0">Manage employee directories, organizational roles, and user access parameters.</p>
           </div>
           <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            size="large"
-            style={{ borderRadius: "10px", paddingLeft: 22, paddingRight: 22, height: "42px", fontWeight: 500, boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)" }}
+            variant="primary"
+            className="d-flex align-items-center justify-content-center gap-2 px-3 py-2 rounded-3 fw-semibold"
             onClick={() => navigate("/users/add")}
           >
-            Add User
+            <PlusLg size={18} /> Add User
           </Button>
         </div>
 
-        <Card
-          bordered={false}
-          style={{
-            borderRadius: "16px",
-            boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02)",
-          }}
-          bodyStyle={{ padding: "24px" }}
-        >
-          {/* Advanced Search & Filter Toolbox */}
-          <div style={{
-            background: "#f8fafc",
-            padding: "18px 20px",
-            borderRadius: "12px",
-            border: "1px solid #e2e8f0",
-            marginBottom: "20px"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <FilterOutlined style={{ color: "#3b82f6" }} />
-              <Text strong style={{ color: "#334155", fontSize: "14px" }}>Filter & Search Parameters</Text>
+        <Card className="border-0 shadow-sm rounded-4">
+          <Card.Body className="p-2 p-md-4">
+            <div className="bg-light rounded-3 border p-3 mb-3">
+              <div className="d-flex align-items-center gap-2 mb-3">
+                <Filter className="text-primary" />
+                <strong className="text-dark">Filter & Search Parameters</strong>
+              </div>
+
+              <Row className="g-3 align-items-center">
+                <Col xs={12} md={6} lg={5}>
+                  <div className="position-relative">
+                    <Search className="position-absolute top-50 translate-middle-y ms-3 text-secondary" style={{ left: 18 }} />
+                    <Form.Control
+                      className="ps-5"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      placeholder="Search by name, code, email, department..."
+                    />
+                  </div>
+                </Col>
+
+                <Col xs={12} md={4} lg={5}>
+                  <Form.Select
+                    value={selectedRoleFilter || ""}
+                    onChange={(e) => setSelectedRoleFilter(e.target.value || undefined)}
+                  >
+                    <option value="">Filter by Role</option>
+                    {roleOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Col>
+
+                <Col xs={12} md={2} lg={2}>
+                  <Button
+                    variant="outline-secondary"
+                    className="w-100 d-flex align-items-center justify-content-center gap-2"
+                    onClick={() => {
+                      setSearchText("");
+                      setSelectedRoleFilter(undefined);
+                    }}
+                  >
+                    <ArrowClockwise /> Reset
+                  </Button>
+                </Col>
+              </Row>
             </div>
-            
-            <Row gutter={[12, 12]} align="middle">
-              <Col xs={24} sm={16} md={10}>
-                <Input
-                  allowClear
-                  size="large"
-                  prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
-                  placeholder="Search by name, code, email, department..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ borderRadius: "8px", background: "#fff" }}
-                />
-              </Col>
-              
-              <Col xs={24} sm={8} md={10}>
-                <Select
-                  style={{ width: '100%' }}
-                  size="large"
-                  placeholder="Filter by Role Code"
-                  allowClear
-                  showSearch
-                  value={selectedRoleFilter}
-                  onChange={(value) => setSelectedRoleFilter(value)}
-                  options={roleOptions}
-                  optionFilterProp="label"
-                />
-              </Col>
 
-              <Col xs={24} sm={24} md={4}>
-                <Button 
-                  icon={<ReloadOutlined />} 
-                  onClick={() => { setSearchText(""); setSelectedRoleFilter(undefined); }}
-                  size="large"
-                  style={{ width: "100%", borderRadius: "8px", background: "#fff", color: "#64748b", fontWeight: 500 }}
-                >
-                  Reset
-                </Button>
-              </Col>
-            </Row>
-          </div>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <small className="text-muted">
+                Showing <strong>{filteredUsers.length}</strong> {filteredUsers.length === 1 ? "user" : "users"}
+              </small>
+            </div>
 
-          {/* Table Counter Bar */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, paddingInline: 4 }}>
-            <Text type="secondary" style={{ fontSize: "13px" }}>
-              Showing <Text strong>{filteredUsers.length}</Text> {filteredUsers.length === 1 ? "user" : "users"}
-            </Text>
-          </div>
-
-          {/* Table */}
-          <Table<EmployeeDto>
-            dataSource={filteredUsers}
-            columns={columns}
-            rowKey="id"
-            loading={loading}
-            bordered={false}
-            size="middle"
-            scroll={{ x: 1000 }}
-            pagination={{ 
-              pageSize: 10, 
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} users`,
-            }}
-          />
+            <DataTable
+              className="user-data-table"
+              columns={columns}
+              data={filteredUsers}
+              keyField="id"
+              pagination
+              paginationPerPage={10}
+              paginationRowsPerPageOptions={[5, 10, 20, 50, 100]}
+              progressPending={loading}
+              persistTableHead
+              highlightOnHover
+              responsive
+              striped
+              noDataComponent={<div className="py-4 text-muted">No users found</div>}
+              customStyles={{
+                headCells: {
+                  style: { fontWeight: 600, color: "#334155", backgroundColor: "#f8fafc" },
+                },
+                rows: { style: { minHeight: "58px" } },
+                cells: { style: { paddingLeft: "10px", paddingRight: "10px" } },
+              }}
+            />
+          </Card.Body>
         </Card>
 
-        {/* DETAIL MODAL */}
-        <Modal
-          title={
-            <div style={{ fontSize: "18px", fontWeight: 600, color: "#0f172a", paddingBottom: 4 }}>
-              User Profile Details
-            </div>
-          }
-          open={isDetailModalOpen}
-          onCancel={() => setIsDetailModalOpen(false)}
-          footer={[
-            <Button 
-              key="close" 
-              type="primary" 
-              size="large"
-              onClick={() => setIsDetailModalOpen(false)}
-              style={{ borderRadius: "8px", paddingInline: 24, fontWeight: 500 }}
-            >
+        <Modal show={isDetailModalOpen} onHide={() => setIsDetailModalOpen(false)} centered size="lg">
+          <Modal.Header closeButton>
+            <Modal.Title className="fw-semibold">User Profile Details</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {selectedUser && (
+              <div>
+                <div className="d-flex align-items-center gap-3 border-bottom pb-3 mb-3">
+                 <div
+    className="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold overflow-hidden flex-shrink-0 shadow-sm"
+    style={{ 
+      width: "64px", 
+      height: "64px", 
+      backgroundColor: "#3b82f6", 
+      fontSize: "24px" 
+    }}
+  >
+    {selectedUser.profileImageUrl ? (
+      <img
+        src={selectedUser.profileImageUrl}
+        alt={selectedUser.fullName || "User Profile"}
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
+    ) : selectedUser.fullName ? (
+      selectedUser.fullName.charAt(0).toUpperCase()
+    ) : (
+      <PersonCircle size={28} />
+    )}
+  </div>
+                  <div>
+                    <div className="fw-semibold fs-5 text-dark">{selectedUser.fullName || "-"}</div>
+                    <div className="text-secondary small">{selectedUser.email || "-"}</div>
+                  </div>
+                </div>
+
+                <div className="row g-3 bg-light p-3 rounded-3 border">
+                  <div className="col-6">
+                    <small className="text-secondary d-block">Employee Code</small>
+                    <strong className="text-dark font-monospace">{selectedUser.employeeCode || "-"}</strong>
+                  </div>
+                  <div className="col-6">
+                    <small className="text-secondary d-block">Company</small>
+                    <strong className="text-dark">{selectedUser.companyName || "-"}</strong>
+                  </div>
+                  <div className="col-6">
+                    <small className="text-secondary d-block">Department</small>
+                    <strong className="text-dark">{selectedUser.departmentName || "-"}</strong>
+                  </div>
+                  <div className="col-6">
+                    <small className="text-secondary d-block">Role</small>
+                    <strong className="text-dark">
+                      {selectedUser.roleName || "-"}
+                      {selectedUser.roleCode ? ` (${selectedUser.roleCode})` : ""}
+                    </strong>
+                  </div>
+                  <div className="col-6">
+                    <small className="text-secondary d-block">Phone Number</small>
+                    <strong className="text-dark">{selectedUser.phone || "-"}</strong>
+                  </div>
+                  <div className="col-6">
+                    <small className="text-secondary d-block">Joined Date</small>
+                    <strong className="text-dark">
+                      {selectedUser.joinedDate ? new Date(selectedUser.joinedDate).toLocaleDateString("en-IN") : "-"}
+                    </strong>
+                  </div>
+                  <div className="col-12">
+                    <small className="text-secondary d-block">Location</small>
+                    <strong className="text-dark">
+                      {[selectedUser.cityName, selectedUser.stateName, selectedUser.countryName].filter(Boolean).join(", ") || "-"}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="primary" onClick={() => setIsDetailModalOpen(false)}>
               Close
             </Button>
-          ]}
-          width={520}
-          centered
-          styles={{ body: { paddingTop: 12 } }}
-        >
-          {selectedUser && (
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #f1f5f9" }}>
-                <Avatar 
-  size={64} 
-  src={selectedUser.profileImageUrl}
-  style={{ backgroundColor: "#3b82f6", fontWeight: 700, fontSize: "24px" }}
->
-  {!selectedUser.profileImageUrl && (selectedUser.fullName ? selectedUser.fullName.charAt(0).toUpperCase() : <UserOutlined />)}
-</Avatar>
-                <div>
-                  <Text strong style={{ fontSize: "18px", color: "#0f172a", display: "block" }}>{selectedUser.fullName || "-"}</Text>
-                  <Text type="secondary" style={{ fontSize: "13px" }}>{selectedUser.email || "-"}</Text>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <div>
-                  <Text type="secondary" style={{ fontSize: "12px", display: "block" }}>Employee Code</Text>
-                  <Text strong style={{ color: "#1e293b", fontFamily: "monospace" }}>{selectedUser.employeeCode || "-"}</Text>
-                </div>
-                <div>
-                  <Text type="secondary" style={{ fontSize: "12px", display: "block" }}>Company</Text>
-                  <Text strong style={{ color: "#1e293b" }}>{selectedUser.companyName || "-"}</Text>
-                </div>
-                <div>
-                  <Text type="secondary" style={{ fontSize: "12px", display: "block" }}>Department</Text>
-                  <Text strong style={{ color: "#1e293b" }}>{selectedUser.departmentName || "-"}</Text>
-                </div>
-                <div>
-                  <Text type="secondary" style={{ fontSize: "12px", display: "block" }}>Role</Text>
-                  <Text strong style={{ color: "#1e293b" }}>{selectedUser.roleName} ({selectedUser.roleCode})</Text>
-                </div>
-                <div>
-                  <Text type="secondary" style={{ fontSize: "12px", display: "block" }}>Phone Number</Text>
-                  <Text strong style={{ color: "#1e293b" }}>{selectedUser.phone || "-"}</Text>
-                </div>
-                <div>
-                  <Text type="secondary" style={{ fontSize: "12px", display: "block" }}>Joined Date</Text>
-                  <Text strong style={{ color: "#1e293b" }}>{selectedUser.joinedDate ? new Date(selectedUser.joinedDate).toLocaleDateString("en-IN") : "-"}</Text>
-                </div>
-                <div style={{ gridColumn: "span 2" }}>
-                  <Text type="secondary" style={{ fontSize: "12px", display: "block" }}>Location</Text>
-                  <Text strong style={{ color: "#1e293b" }}>
-                    {[selectedUser.cityName, selectedUser.stateName, selectedUser.countryName].filter(Boolean).join(", ") || "-"}
-                  </Text>
-                </div>
-              </div>
-            </div>
-          )}
+          </Modal.Footer>
         </Modal>
       </div>
     </div>

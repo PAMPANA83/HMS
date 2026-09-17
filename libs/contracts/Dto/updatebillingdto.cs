@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace HSMS.contracts.Dto
 {
-    public class updatebillingdto
+    public class UpdateBillingDto   
     {
         public string? BillNumber { get; set; }
         public decimal? PaidAmount { get; set; }

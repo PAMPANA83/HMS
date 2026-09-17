@@ -1,5 +1,4 @@
 import {
-  Table,
   Card,
   Button,
   Modal,
@@ -7,15 +6,14 @@ import {
   Input,
   message,
   Select,
-  Tag,
   Typography,
   Space,
   Row,
   Col,
   Tooltip,
 } from "antd";
-import type { TableProps } from "antd";
 import { useEffect, useMemo, useState, useCallback } from "react";
+import DataTable, { type TableColumn } from "react-data-table-component";
 import {
   DeleteOutlined,
   SearchOutlined,
@@ -56,12 +54,6 @@ export function State() {
 
   // Row Selection Keys for Bulk Actions
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-
-  // Pagination State
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-  });
 
   const [countries, setCountries] = useState<
     { id: number; countryName?: string; name?: string }[]
@@ -241,87 +233,62 @@ export function State() {
   // Columns & Selection Config
   // ==============================
 
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (newSelectedRowKeys: React.Key[]) => {
-      setSelectedRowKeys(newSelectedRowKeys);
-    },
-  };
-
-  const columns: TableProps<StateMastersDto>["columns"] = useMemo(
+  const columns = useMemo<TableColumn<StateMastersDto>[]>(
     () => [
       {
-        title: "State",
-        dataIndex: "name",
-        key: "name",
-        width: 220,
-        fixed: "left",
-        ellipsis: true,
-        sorter: (a, b) => (a.name || "").localeCompare(b.name || ""),
-        render: (text: string) => (
+        name: "State",
+        selector: (row) => row.name || "-",
+        sortable: true,
+        grow: 2,
+        wrap: true,
+        cell: (row) => (
           <Space size={8}>
             <EnvironmentOutlined style={{ color: "#3b82f6" }} />
-            <Text strong style={{ color: "#1e293b" }}>{text || "-"}</Text>
+            <Text strong style={{ color: "#1e293b" }}>{row.name || "-"}</Text>
           </Space>
         ),
       },
       {
-        title: "Code",
-        dataIndex: "stateCode",
-        key: "stateCode",
-        width: 140,
-        align: "center",
-        sorter: (a, b) => String(a.stateCode || "").localeCompare(String(b.stateCode || "")),
-        render: (code: string | number) => (
-          <span style={{ 
-            background: "#eff6ff", 
-            padding: "2px 8px", 
-            borderRadius: "6px", 
-            border: "1px solid #bfdbfe", 
-            fontFamily: "monospace",
-            fontWeight: 600,
-            color: "#1d4ed8",
-            fontSize: "12px"
-          }}>
-            {code ?? "-"}
+        name: "Code",
+        selector: (row) => String(row.stateCode || ""),
+        sortable: true,
+        center: true,
+        width: "110px",
+        cell: (row) => (
+          <span style={{ background: "#eff6ff", padding: "2px 8px", borderRadius: "6px", border: "1px solid #bfdbfe", fontFamily: "monospace", fontWeight: 600, color: "#1d4ed8", fontSize: "12px" }}>
+            {row.stateCode ?? "-"}
           </span>
         ),
       },
       {
-        title: "Country",
-        dataIndex: "countryName",
-        key: "countryName",
-        width: 180,
-        sorter: (a, b) =>
-          (a.countryName || "").localeCompare(b.countryName || ""),
-        render: (country: string) => (
-          <Text style={{ color: "#334155", fontWeight: 500 }}>{country || "-"}</Text>
-        ),
+        name: "Country",
+        selector: (row) => row.countryName || "-",
+        sortable: true,
+        grow: 1.5,
+        wrap: true,
+        cell: (row) => <Text style={{ color: "#334155", fontWeight: 500 }}>{row.countryName || "-"}</Text>,
       },
       {
-        title: "Created",
-        dataIndex: "createdAt",
-        key: "createdAt",
-        width: 150,
-        sorter: (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        render: (date: string) =>
-          date ? new Date(date).toLocaleDateString("en-IN") : "-",
+        name: "Created",
+        selector: (row) => row.createdAt || "",
+        sortable: true,
+        hide: 768,
+        width: "145px",
+        sortFunction: (first, second) => new Date(first.createdAt || 0).getTime() - new Date(second.createdAt || 0).getTime(),
+        cell: (row) => row.createdAt ? new Date(row.createdAt).toLocaleDateString("en-IN") : "-",
       },
       {
-        title: "Actions",
-        key: "actions",
-        width: 100,
-        fixed: "right",
-        align: "center",
-        render: (_, record) => (
+        name: "Actions",
+        center: true,
+        width: "90px",
+        cell: (row) => (
           <Tooltip title="Delete">
             <Button
               type="text"
               danger
               icon={<DeleteOutlined />}
               size="small"
-              onClick={() => handleDelete(record.id)}
+              onClick={() => handleDelete(row.id)}
               style={{ background: "#fef2f2", borderRadius: "6px", width: 30, height: 30 }}
             />
           </Tooltip>
@@ -332,7 +299,7 @@ export function State() {
   );
 
   return (
-    <div style={{ padding: "28px", background: "#f8fafc", minHeight: "100vh" }}>
+    <div className="state-page" style={{ padding: "28px", background: "#f8fafc", minHeight: "100vh" }}>
       <div style={{ maxWidth: 1500, margin: "0 auto" }}>
         
         {/* Modern Header Section */}
@@ -342,7 +309,7 @@ export function State() {
             <Text type="secondary" style={{ fontSize: "14px" }}>Configure and manage administrative regions, state codes, and country mappings.</Text>
           </div>
           
-          <Space>
+          <Space className="state-page-actions" wrap>
             {/* Multi-Delete Action Button */}
             {selectedRowKeys.length > 0 && (
               <Button
@@ -403,7 +370,6 @@ export function State() {
                   value={searchText}
                   onChange={(e) => {
                     setSearchText(e.target.value);
-                    setPagination((prev) => ({ ...prev, current: 1 }));
                   }}
                   style={{ borderRadius: "8px", background: "#fff" }}
                 />
@@ -420,7 +386,6 @@ export function State() {
                   value={selectedCountryFilter}
                   onChange={(value) => {
                     setSelectedCountryFilter(value);
-                    setPagination((prev) => ({ ...prev, current: 1 }));
                   }}
                   options={countryFilterOptions}
                 />
@@ -432,7 +397,6 @@ export function State() {
                   onClick={() => {
                     setSearchText("");
                     setSelectedCountryFilter(undefined);
-                    setPagination({ current: 1, pageSize: 10 });
                   }}
                   size="large"
                   style={{ width: "100%", borderRadius: "8px", background: "#fff", color: "#64748b", fontWeight: 500 }}
@@ -455,29 +419,27 @@ export function State() {
             )}
           </div>
 
-          {/* State Table with Row Selection */}
-          <Table<StateMastersDto>
-            rowKey="id"
-            rowSelection={rowSelection}
+          <DataTable
+            className="state-data-table"
             columns={columns}
-            dataSource={filteredData}
-            loading={loading}
-            bordered={false}
-            size="middle"
-            scroll={{ x: 900 }}
-            pagination={{
-              current: pagination.current,
-              pageSize: pagination.pageSize,
-              pageSizeOptions: pageSizeOptions,
-              showSizeChanger: true,
-              showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total} states`,
-              onChange: (page, pageSize) => {
-                setPagination({ current: page, pageSize });
-              },
-              onShowSizeChange: (current, size) => {
-                setPagination({ current: 1, pageSize: size });
-              },
+            data={filteredData}
+            keyField="id"
+            selectableRows
+            selectableRowsHighlight
+            onSelectedRowsChange={({ selectedRows }) => setSelectedRowKeys(selectedRows.map((row) => row.id))}
+            clearSelectedRows={selectedRowKeys.length === 0}
+            pagination
+            paginationPerPage={10}
+            paginationRowsPerPageOptions={pageSizeOptions.map(Number)}
+            progressPending={loading}
+            persistTableHead
+            highlightOnHover
+            responsive
+            noDataComponent={<div className="py-4 text-muted">No states found</div>}
+            customStyles={{
+              headCells: { style: { fontWeight: 600, color: "#334155", backgroundColor: "#f8fafc" } },
+              rows: { style: { minHeight: "58px" } },
+              cells: { style: { paddingLeft: "12px", paddingRight: "12px" } },
             }}
           />
         </Card>

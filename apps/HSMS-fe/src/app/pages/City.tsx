@@ -1,5 +1,4 @@
 import {
-  Table,
   Card,
   Button,
   Modal,
@@ -14,14 +13,13 @@ import {
   Tooltip,
 } from "antd";
 
-import type { TableProps } from "antd";
-
 import {
   useEffect,
   useMemo,
   useState,
   useCallback,
 } from "react";
+import DataTable, { type TableColumn } from "react-data-table-component";
 
 import {
   CityMastersDto,
@@ -80,7 +78,7 @@ export function City() {
     try {
       const result = await getCity();
       setData(Array.isArray(result) ? result : result?.data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Load error:", error);
       message.error("Failed to load cities");
       setData([]);
@@ -124,10 +122,10 @@ export function City() {
       form.resetFields();
       setIsModalOpen(false);
       await loadCities();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Create error:", error);
       message.error(
-        error.response?.data?.message || "Create failed"
+        error instanceof Error ? error.message : "Create failed"
       );
     }
   };
@@ -150,7 +148,7 @@ export function City() {
             message.success("City deleted successfully");
             setSelectedRowKeys((prev) => prev.filter((key) => key !== id));
             await loadCities();
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error("Delete error:", error);
             message.error("Delete failed");
           }
@@ -240,30 +238,28 @@ export function City() {
   // Table Columns
   // ==============================
 
-  const columns: TableProps<CityMastersDto>["columns"] = useMemo(
+  const columns = useMemo<TableColumn<CityMastersDto>[]>(
     () => [
       {
-        title: "City",
-        dataIndex: "name",
-        key: "name",
-        width: 220,
-        fixed: "left",
-        ellipsis: true,
-        sorter: (a, b) => (a.name || "").localeCompare(b.name || ""),
-        render: (text: string) => (
+        name: "City",
+        selector: (row) => row.name || "-",
+        sortable: true,
+        grow: 2,
+        wrap: true,
+        cell: (row) => (
           <Space size={8}>
             <ShopOutlined style={{ color: "#3b82f6" }} />
-            <Text strong style={{ color: "#1e293b" }}>{text || "-"}</Text>
+            <Text strong style={{ color: "#1e293b" }}>{row.name || "-"}</Text>
           </Space>
         ),
       },
       {
-        title: "State",
-        dataIndex: "stateName",
-        key: "stateName",
-        width: 180,
-        sorter: (a, b) => (a.stateName || "").localeCompare(b.stateName || ""),
-        render: (state: string) => (
+        name: "State",
+        selector: (row) => row.stateName || "-",
+        sortable: true,
+        grow: 1.5,
+        wrap: true,
+        cell: (row) => (
           <span style={{ 
             background: "#eff6ff", 
             padding: "2px 8px", 
@@ -273,63 +269,57 @@ export function City() {
             color: "#1d4ed8",
             fontSize: "12px"
           }}>
-            {state || "-"}
+            {row.stateName || "-"}
           </span>
         ),
       },
       {
-        title: "Postal Code",
-        dataIndex: "postalCode",
-        key: "postalCode",
-        width: 150,
-        sorter: (a, b) =>
-          String(a.postalCode || "").localeCompare(String(b.postalCode || "")),
-        render: (postalCode: string) => (
+        name: "Postal Code",
+        selector: (row) => String(row.postalCode || "-"),
+        sortable: true,
+        width: "140px",
+        cell: (row) => (
           <span style={{ fontFamily: "monospace", color: "#334155", fontWeight: 500 }}>
-            {postalCode || "-"}
+            {row.postalCode || "-"}
           </span>
         ),
       },
       {
-        title: "Created",
-        dataIndex: "createdAt",
-        key: "createdAt",
-        width: 150,
-        sorter: (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        render: (date: string) =>
-          date ? new Date(date).toLocaleDateString("en-IN") : "-",
+        name: "Created",
+        selector: (row) => row.createdAt || "",
+        sortable: true,
+        hide: 768,
+        width: "145px",
+        sortFunction: (first, second) =>
+          new Date(first.createdAt || 0).getTime() - new Date(second.createdAt || 0).getTime(),
+        cell: (row) => row.createdAt ? new Date(row.createdAt).toLocaleDateString("en-IN") : "-",
       },
       {
-        title: "Edited",
-        dataIndex: "updatedAt",
-        key: "updatedAt",
-        width: 150,
-        sorter: (a, b) => {
-          const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-          const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-          return timeA - timeB;
-        },
-        render: (date: string | null | undefined) => {
-          if (!date) return "-";
-          const d = new Date(date);
-          return isNaN(d.getTime()) ? "-" : d.toLocaleDateString("en-IN");
+        name: "Edited",
+        selector: (row) => row.updatedAt || "",
+        sortable: true,
+        hide: 768,
+        width: "145px",
+        sortFunction: (first, second) =>
+          new Date(first.updatedAt || 0).getTime() - new Date(second.updatedAt || 0).getTime(),
+        cell: (row) => {
+          if (!row.updatedAt) return "-";
+          const date = new Date(row.updatedAt);
+          return isNaN(date.getTime()) ? "-" : date.toLocaleDateString("en-IN");
         },
       },
       {
-        title: "Actions",
-        key: "actions",
-        width: 100,
-        fixed: "right",
-        align: "center",
-        render: (_: unknown, record: CityMastersDto) => (
+        name: "Actions",
+        width: "90px",
+        center: true,
+        cell: (row) => (
           <Tooltip title="Delete">
             <Button
               type="text"
               danger
               icon={<DeleteOutlined />}
               size="small"
-              onClick={() => handleDelete(record.id)}
+              onClick={() => handleDelete(row.id)}
               style={{ background: "#fef2f2", borderRadius: "6px", width: 30, height: 30 }}
             />
           </Tooltip>
@@ -339,15 +329,8 @@ export function City() {
     [handleDelete]
   );
 
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (newSelectedRowKeys: React.Key[]) => {
-      setSelectedRowKeys(newSelectedRowKeys);
-    },
-  };
-
   return (
-    <div style={{ padding: "28px", background: "#f8fafc", minHeight: "100vh" }}>
+    <div className="city-page" style={{ padding: "28px", background: "#f8fafc", minHeight: "100vh" }}>
       <style>{`
         .ant-card {
           overflow: visible !important;
@@ -390,7 +373,7 @@ export function City() {
             <Text type="secondary" style={{ fontSize: "14px" }}>Configure and manage cities, postal codes, and regional state mappings.</Text>
           </div>
           
-          <Space>
+          <Space className="city-page-actions" wrap>
             {selectedRowKeys.length > 0 && (
               <Button
                 type="primary"
@@ -495,23 +478,27 @@ export function City() {
             )}
           </div>
 
-          {/* City Table */}
-          <Table<CityMastersDto>
-            className="custom-table"
-            rowKey="id"
+          <DataTable
+            className="city-data-table"
             columns={columns}
-            dataSource={filteredData}
-            loading={loading}
-            bordered={false}
-            size="middle"
-            scroll={{ x: 900 }}
-            rowSelection={rowSelection}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total} cities`,
+            data={filteredData}
+            keyField="id"
+            selectableRows
+            selectableRowsHighlight
+            onSelectedRowsChange={({ selectedRows }) => setSelectedRowKeys(selectedRows.map((row) => row.id))}
+            clearSelectedRows={selectedRowKeys.length === 0}
+            pagination
+            paginationPerPage={10}
+            paginationRowsPerPageOptions={[10, 20, 50, 100]}
+            progressPending={loading}
+            persistTableHead
+            highlightOnHover
+            responsive
+            noDataComponent={<div className="py-4 text-muted">No cities found</div>}
+            customStyles={{
+              headCells: { style: { fontWeight: 600, color: "#334155", backgroundColor: "#f8fafc" } },
+              rows: { style: { minHeight: "58px" } },
+              cells: { style: { paddingLeft: "12px", paddingRight: "12px" } },
             }}
           />
         </Card>

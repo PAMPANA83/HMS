@@ -9,7 +9,7 @@ namespace HSMS.Application.IServices
 
         Task<Result<List<BillingDto>>> GetAllBillingAsync();
 
-        Task<Result<string>> UpdateBillingAsync(updatebillingdto dto);
+        Task<Result<string>> UpdateBillingAsync(UpdateBillingDto dto);
 
     }
     

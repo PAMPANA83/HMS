@@ -34,8 +34,6 @@ namespace HSMS.Application.Services
                     };
                 }
 
-
-
                 var appointment = await _unitOfWork.appointment.GetAppointByID((int)dto.AppointmentId);
                 if (appointment == null)
                 {
@@ -155,7 +153,7 @@ namespace HSMS.Application.Services
                                   PaymentMethod = billing.PaymentMethod,
                                   CreatedAt = billing.CreatedAt,
                                   CreatedBy = rs.FirstName+" "+rs.LastName
-                             }).ToList();
+                             }).OrderByDescending(x=>x.CreatedAt).ToList();
 
 
                 _cache.Set(CacheKeys.BillingList, result, new MemoryCacheEntryOptions
@@ -180,7 +178,7 @@ namespace HSMS.Application.Services
             }
         }
 
-        public async Task<Result<string>> UpdateBillingAsync(updatebillingdto dto)
+        public async Task<Result<string>> UpdateBillingAsync(UpdateBillingDto dto)
         {
             try
             {
@@ -193,10 +191,22 @@ namespace HSMS.Application.Services
                     };
                 }
 
+
                 billing.PaidAmount = dto.PaidAmount ?? billing.PaidAmount;
                 billing.PaymentStatus = dto.PaymentStatus ?? billing.PaymentStatus;
                 billing.PaymentMethod = dto.PaymentMethod ?? billing.PaymentMethod;
-
+                //var res_app = new Billingtable(
+                //    billing.Id,
+                //    billing.BillNumber,
+                //    billing.PatientId, // Argument 3: expects int, use PatientId
+                //    billing.AppointmentId, // Argument 4: expects int?, use AppointmentId
+                //    billing.TotalAmount,
+                //    dto.PaidAmount ?? billing.PaidAmount,
+                //    dto.PaymentStatus ?? billing.PaymentStatus,
+                //    dto.PaymentMethod ?? billing.PaymentMethod,
+                //    billing.CreatedAt,
+                //    billing.CreatedBy
+                //);
                 var result = await _unitOfWork.billingRespository.UpdateBillingAsync(billing);
                 var saveResult = await _unitOfWork.SaveChangesAsync();
                 if (saveResult <= 0)
@@ -208,6 +218,7 @@ namespace HSMS.Application.Services
                     };
                 }
                 await _unitOfWork.CommitAsync();
+                _unitOfWork.Dispose();
                 _cache.Remove(CacheKeys.BillingList);
 
                 return new Result<string>

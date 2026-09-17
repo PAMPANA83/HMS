@@ -13,7 +13,8 @@ import {
   LogoutOutlined,
   UserOutlined,
   IdcardOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  CreditCardOutlined
 } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 
@@ -162,7 +163,18 @@ const menuItems: RoleMenuItem[] = [
           "Nurse",
           "Receptionist",
         ],
-      }
+      },
+      {
+  key: "Billing",
+  icon: <CreditCardOutlined />, // or <DollarOutlined /> / <FileTextOutlined />
+  label: <Link to="/billing">Billing</Link>,
+  roles: [
+    "Super Administrator",
+    "Administrator",
+    "Receptionist",
+    "Billing Staff",
+  ],
+}
     ],
   },
 

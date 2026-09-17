@@ -1,20 +1,6 @@
-import {
-  Button,
-  Card,
-  Col,
-  Form,
-  Input,
-  Row,
-  Select,
-  Switch,
-  Checkbox,
-  message,
-  Typography,
-  Divider,
-} from "antd";
+import { Button, Card, Col, Form, Row, Spinner } from "react-bootstrap";
 import {
   PlusOutlined,
-  ClearOutlined,
   ApartmentOutlined,
   EnvironmentOutlined,
   SafetyCertificateOutlined,
@@ -26,8 +12,21 @@ import { getCountries } from "../services/country.service";
 import { getState } from "../services/State.service";
 import { getCity } from "../services/City.service";
 
-const { Title, Text } = Typography;
-const { Option } = Select;
+const initialForm = (companyId: number): CreateBranchDto => ({
+  companyId,
+  branchName: "",
+  branchCode: "",
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  cityId: 0,
+  stateId: 0,
+  countryId: 0,
+  postalCode: "",
+  isMainBranch: false,
+  isActive: true,
+});
 
 // =========================================================
 // TYPES
@@ -58,12 +57,11 @@ interface CreateBranchProps {
 // =========================================================
 
 export function CreateBranch({ companyId = 1 }: CreateBranchProps) {
-  const [form] = Form.useForm<CreateBranchDto>();
-
   // =========================================================
   // STATE
   // =========================================================
 
+  const [formData, setFormData] = useState<CreateBranchDto>(() => initialForm(companyId));
   const [loading, setLoading] = useState(false);
   const [countryLoading, setCountryLoading] = useState(false);
   const [stateLoading, setStateLoading] = useState(false);
@@ -77,11 +75,20 @@ export function CreateBranch({ companyId = 1 }: CreateBranchProps) {
   // EXTRACT ARRAY FROM API RESPONSE
   // =========================================================
 
-  const extractDataArray = <T,>(result: any): T[] => {
+  const extractDataArray = <T,>(result: unknown): T[] => {
+    if (!result || typeof result !== "object") return [];
+    const response = result as { data?: unknown };
     if (Array.isArray(result)) return result;
-    if (Array.isArray(result?.data)) return result.data;
-    if (Array.isArray(result?.data?.data)) return result.data.data;
+    if (Array.isArray(response.data)) return response.data as T[];
+    if (response.data && typeof response.data === "object" && Array.isArray((response.data as { data?: unknown }).data)) {
+      return (response.data as { data: T[] }).data;
+    }
     return [];
+  };
+
+  const notify = (text: string) => window.alert(text);
+  const updateField = <K extends keyof CreateBranchDto>(field: K, value: CreateBranchDto[K]) => {
+    setFormData((previous) => ({ ...previous, [field]: value }));
   };
 
   // =========================================================
@@ -101,7 +108,7 @@ export function CreateBranch({ companyId = 1 }: CreateBranchProps) {
         setStates(extractDataArray<StateOption>(stateRes));
       } catch (error) {
         console.error("Failed to load location metadata:", error);
-        message.error("Failed to load dropdown data");
+        notify("Failed to load dropdown data");
       } finally {
         setCountryLoading(false);
         setStateLoading(false);
@@ -124,7 +131,7 @@ export function CreateBranch({ companyId = 1 }: CreateBranchProps) {
       setCities(filteredCities);
     } catch (error) {
       console.error("Load cities error:", error);
-      message.error("Failed to load cities");
+      notify("Failed to load cities");
       setCities([]);
     } finally {
       setCityLoading(false);
@@ -136,7 +143,8 @@ export function CreateBranch({ companyId = 1 }: CreateBranchProps) {
   // =========================================================
 
   const handleStateChange = (value: number) => {
-    form.setFieldsValue({ cityId: undefined as unknown as number });
+    updateField("stateId", value);
+    updateField("cityId", 0);
     setCities([]);
     if (value) {
       loadCity(Number(value));
@@ -147,35 +155,36 @@ export function CreateBranch({ companyId = 1 }: CreateBranchProps) {
   // CREATE BRANCH
   // =========================================================
 
-  const handleCreate = async (values: CreateBranchDto) => {
+  const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!formData.branchName.trim() || !formData.branchCode.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.addressLine1.trim() || !formData.countryId || !formData.stateId || !formData.cityId) {
+      notify("Please complete all required fields.");
+      return;
+    }
     setLoading(true);
     try {
       const payload: CreateBranchDto = {
         companyId: Number(companyId) || 0,
-        branchName: values.branchName?.trim() || "",
-        branchCode: values.branchCode?.trim().toUpperCase() || "",
-        email: values.email?.trim() || "",
-        phone: values.phone?.trim() || "",
-        addressLine1: values.addressLine1?.trim() || "",
-        addressLine2: values.addressLine2?.trim() || null,
-        cityId: Number(values.cityId) || 0,
-        stateId: Number(values.stateId) || 0,
-        countryId: Number(values.countryId) || 0,
-        postalCode: values.postalCode?.trim() || "",
-        isMainBranch: values.isMainBranch ?? false,
-        isActive: values.isActive ?? true,
+        branchName: formData.branchName.trim(),
+        branchCode: formData.branchCode.trim().toUpperCase(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        addressLine1: formData.addressLine1.trim(),
+        addressLine2: formData.addressLine2?.trim() || null,
+        cityId: Number(formData.cityId),
+        stateId: Number(formData.stateId),
+        countryId: Number(formData.countryId),
+        postalCode: formData.postalCode.trim(),
+        isMainBranch: formData.isMainBranch,
+        isActive: formData.isActive,
       };
 
       await createBranch(payload);
-      message.success("Branch created successfully");
+      notify("Branch created successfully");
       handleReset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Create branch error:", error);
-      message.error(
-        error?.response?.data?.message ||
-          error?.response?.data?.title ||
-          "Create branch failed"
-      );
+      notify(error instanceof Error ? error.message : "Create branch failed");
     } finally {
       setLoading(false);
     }
@@ -186,11 +195,7 @@ export function CreateBranch({ companyId = 1 }: CreateBranchProps) {
   // =========================================================
 
   const handleReset = () => {
-    form.resetFields();
-    form.setFieldsValue({
-      isActive: true,
-      isMainBranch: false,
-    });
+    setFormData(initialForm(companyId));
     setCities([]);
   };
 
@@ -199,263 +204,35 @@ export function CreateBranch({ companyId = 1 }: CreateBranchProps) {
   // =========================================================
 
   return (
-    <div style={{ padding: "24px", background: "#f8fafc", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        
-        {/* Header Section */}
-        <div style={{ marginBottom: 24 }}>
-          <Title level={3} style={{ margin: 0, fontWeight: 600, color: "#1e293b" }}>Branch Management</Title>
-          <Text type="secondary">Register a new office location and configure operational settings.</Text>
-        </div>
-
-        <Card
-          bordered={false}
-          style={{
-            borderRadius: "16px",
-            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
-          }}
-        >
-          <Form<CreateBranchDto>
-            form={form}
-            layout="vertical"
-            onFinish={handleCreate}
-            autoComplete="off"
-            initialValues={{
-              isActive: true,
-              isMainBranch: false,
-            }}
-            requiredMark="optional"
-          >
-            {/* Section: Branch Details */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <ApartmentOutlined style={{ color: "#3b82f6", fontSize: "18px" }} />
-              <Text strong style={{ fontSize: "16px", color: "#334155" }}>Branch Information & Contacts</Text>
-            </div>
-
-            <Row gutter={20}>
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item
-                  label="Branch Name"
-                  name="branchName"
-                  rules={[{ required: true, message: "Enter branch name" }]}
-                >
-                  <Input placeholder="Main Branch" size="large" />
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item
-                  label="Branch Code"
-                  name="branchCode"
-                  rules={[{ required: true, message: "Enter branch code" }]}
-                >
-                  <Input placeholder="BR-001" size="large" style={{ textTransform: "uppercase" }} />
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item
-                  label="Email"
-                  name="email"
-                  rules={[
-                    { required: true, message: "Enter email" },
-                    { type: "email", message: "Enter valid email" },
-                  ]}
-                >
-                  <Input placeholder="branch@example.com" size="large" />
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item
-                  label="Phone"
-                  name="phone"
-                  rules={[{ required: true, message: "Enter phone number" }]}
-                >
-                  <Input placeholder="+919876543210" size="large" />
-                </Form.Item>
-              </Col>
+    <div className="create-branch-page p-2 p-md-4 min-vh-100">
+      <div className="mx-auto" style={{ maxWidth: 1100 }}>
+        <div className="create-branch-hero mb-4"><div className="eyebrow">Operations workspace</div><h3 className="mb-1 fw-bold text-dark">Branch Management</h3><p className="text-muted mb-0">Register a new office location and configure operational settings.</p></div>
+        <Card className="create-branch-card border-0"><Card.Body className="p-3 p-md-4 p-lg-5">
+          <Form onSubmit={handleCreate} noValidate>
+            <div className="form-section-heading mb-3"><span className="section-icon"><ApartmentOutlined /></span><div><strong>Branch Information & Contacts</strong><small>Basic identity and communication details</small></div></div>
+            <Row className="g-3">
+              <Col xs={12} md={6}><Form.Group><Form.Label>Branch Name</Form.Label><Form.Control required value={formData.branchName} onChange={(e) => updateField("branchName", e.target.value)} placeholder="Main Branch" /></Form.Group></Col>
+              <Col xs={12} md={6}><Form.Group><Form.Label>Branch Code</Form.Label><Form.Control required value={formData.branchCode} onChange={(e) => updateField("branchCode", e.target.value.toUpperCase())} placeholder="BR-001" /></Form.Group></Col>
+              <Col xs={12} md={6}><Form.Group><Form.Label>Email</Form.Label><Form.Control required type="email" value={formData.email} onChange={(e) => updateField("email", e.target.value)} placeholder="branch@example.com" /></Form.Group></Col>
+              <Col xs={12} md={6}><Form.Group><Form.Label>Phone</Form.Label><Form.Control required value={formData.phone} onChange={(e) => updateField("phone", e.target.value)} placeholder="+919876543210" /></Form.Group></Col>
             </Row>
-
-            <Divider style={{ margin: "12px 0 24px 0" }} />
-
-            {/* Section: Location Info */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <EnvironmentOutlined style={{ color: "#3b82f6", fontSize: "18px" }} />
-              <Text strong style={{ fontSize: "16px", color: "#334155" }}>Location & Address</Text>
-            </div>
-
-            <Row gutter={20}>
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item
-                  label="Address Line 1"
-                  name="addressLine1"
-                  rules={[{ required: true, message: "Enter address line 1" }]}
-                >
-                  <Input.TextArea rows={2} placeholder="Street address" />
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item label="Address Line 2" name="addressLine2">
-                  <Input.TextArea rows={2} placeholder="Apartment, suite, etc." />
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item
-                  label="Country"
-                  name="countryId"
-                  rules={[{ required: true, message: "Select country" }]}
-                >
-                  <Select
-                    showSearch
-                    allowClear
-                    size="large"
-                    placeholder="Select Country"
-                    optionFilterProp="children"
-                    loading={countryLoading}
-                  >
-                    {countries.map((c) => (
-                      <Option key={c.id} value={c.id}>
-                        {c.name}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item
-                  label="State"
-                  name="stateId"
-                  rules={[{ required: true, message: "Select state" }]}
-                >
-                  <Select
-                    showSearch
-                    allowClear
-                    size="large"
-                    placeholder="Select State"
-                    optionFilterProp="children"
-                    loading={stateLoading}
-                    onChange={handleStateChange}
-                  >
-                    {states.map((s) => (
-                      <Option key={s.id} value={s.id}>
-                        {s.name}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item
-                  label="City"
-                  name="cityId"
-                  rules={[{ required: true, message: "Select city" }]}
-                >
-                  <Select
-                    showSearch
-                    allowClear
-                    size="large"
-                    placeholder={cityLoading ? "Loading..." : "Select City"}
-                    optionFilterProp="children"
-                    loading={cityLoading}
-                    disabled={cityLoading || cities.length === 0}
-                  >
-                    {cities.map((city) => (
-                      <Option key={city.id} value={city.id}>
-                        {city.name}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item label="Postal Code" name="postalCode">
-                  <Input placeholder="560001" maxLength={10} size="large" />
-                </Form.Item>
-              </Col>
+            <hr className="my-4" />
+            <div className="form-section-heading mb-3"><span className="section-icon"><EnvironmentOutlined /></span><div><strong>Location & Address</strong><small>Connect this branch to its administrative location</small></div></div>
+            <Row className="g-3">
+              <Col xs={12} md={6}><Form.Group><Form.Label>Address Line 1</Form.Label><Form.Control required as="textarea" rows={2} value={formData.addressLine1} onChange={(e) => updateField("addressLine1", e.target.value)} placeholder="Street address" /></Form.Group></Col>
+              <Col xs={12} md={6}><Form.Group><Form.Label>Address Line 2</Form.Label><Form.Control as="textarea" rows={2} value={formData.addressLine2 || ""} onChange={(e) => updateField("addressLine2", e.target.value)} placeholder="Apartment, suite, etc." /></Form.Group></Col>
+              <Col xs={12} sm={6} md={3}><Form.Group><Form.Label>Country</Form.Label><Form.Select required disabled={countryLoading} value={formData.countryId || ""} onChange={(e) => updateField("countryId", Number(e.target.value))}><option value="">{countryLoading ? "Loading..." : "Select country"}</option>{countries.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}</Form.Select></Form.Group></Col>
+              <Col xs={12} sm={6} md={3}><Form.Group><Form.Label>State</Form.Label><Form.Select required disabled={stateLoading} value={formData.stateId || ""} onChange={(e) => handleStateChange(Number(e.target.value))}><option value="">{stateLoading ? "Loading..." : "Select state"}</option>{states.map((state) => <option key={state.id} value={state.id}>{state.name}</option>)}</Form.Select></Form.Group></Col>
+              <Col xs={12} sm={6} md={3}><Form.Group><Form.Label>City</Form.Label><Form.Select required disabled={!formData.stateId || cityLoading} value={formData.cityId || ""} onChange={(e) => updateField("cityId", Number(e.target.value))}><option value="">{cityLoading ? "Loading..." : "Select city"}</option>{cities.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}</Form.Select></Form.Group></Col>
+              <Col xs={12} sm={6} md={3}><Form.Group><Form.Label>Postal Code</Form.Label><Form.Control maxLength={10} value={formData.postalCode} onChange={(e) => updateField("postalCode", e.target.value)} placeholder="560001" /></Form.Group></Col>
             </Row>
-
-            <Divider style={{ margin: "12px 0 24px 0" }} />
-
-            {/* Section: Status & Configuration */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <SafetyCertificateOutlined style={{ color: "#3b82f6", fontSize: "18px" }} />
-              <Text strong style={{ fontSize: "16px", color: "#334155" }}>Configuration & Status</Text>
-            </div>
-
-            <Row gutter={20}>
-              <Col xs={24} sm={12}>
-                <Form.Item name="isMainBranch" valuePropName="checked" style={{ marginBottom: 0 }}>
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 16px",
-                    background: "#f1f5f9",
-                    borderRadius: "10px",
-                    border: "1px solid #e2e8f0",
-                  }}>
-                    <div>
-                      <Text strong style={{ display: "block", color: "#334155" }}>Main Branch Designation</Text>
-                      <Text type="secondary" style={{ fontSize: "13px" }}>Designate as primary office location</Text>
-                    </div>
-                    <Checkbox />
-                  </div>
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12}>
-                <Form.Item name="isActive" valuePropName="checked" style={{ marginBottom: 0 }}>
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 16px",
-                    background: "#f1f5f9",
-                    borderRadius: "10px",
-                    border: "1px solid #e2e8f0",
-                  }}>
-                    <div>
-                      <Text strong style={{ display: "block", color: "#334155" }}>Branch Status</Text>
-                      <Text type="secondary" style={{ fontSize: "13px" }}>Set branch active or inactive</Text>
-                    </div>
-                    <Switch />
-                  </div>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Divider style={{ margin: "12px 0 24px 0" }} />
-
-            {/* Form Actions */}
-            <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
-              <Button
-                icon={<ClearOutlined />}
-                onClick={handleReset}
-                disabled={loading}
-                size="large"
-                style={{ marginRight: 12, borderRadius: "8px" }}
-              >
-                Reset Form
-              </Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                icon={<PlusOutlined />}
-                loading={loading}
-                size="large"
-                style={{ borderRadius: "8px", paddingLeft: 24, paddingRight: 24 }}
-              >
-                Create Branch
-              </Button>
-            </Form.Item>
+            <hr className="my-4" />
+            <div className="form-section-heading mb-3"><span className="section-icon"><SafetyCertificateOutlined /></span><div><strong>Configuration & Status</strong><small>Set the branch role and availability</small></div></div>
+            <Row className="g-3"><Col xs={12} sm={6}><div className="setting-tile"><Form.Check type="switch" label="Main branch designation" checked={formData.isMainBranch} onChange={(e) => updateField("isMainBranch", e.target.checked)} /></div></Col><Col xs={12} sm={6}><div className="setting-tile"><Form.Check type="switch" label="Branch is active" checked={formData.isActive} onChange={(e) => updateField("isActive", e.target.checked)} /></div></Col></Row>
+            <hr className="my-4" />
+            <div className="d-flex justify-content-end gap-2 flex-wrap"><Button variant="outline-secondary" type="button" onClick={handleReset} disabled={loading}>Reset Form</Button><Button variant="primary" type="submit" disabled={loading} className="d-flex align-items-center gap-2">{loading && <Spinner animation="border" size="sm" />}<PlusOutlined /> Create Branch</Button></div>
           </Form>
-        </Card>
+        </Card.Body></Card>
       </div>
     </div>
   );

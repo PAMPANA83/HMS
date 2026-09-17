@@ -38,5 +38,16 @@ namespace HSMS_be.Controller
             return Ok(result.Data);
         }
 
+        [HttpPut("update-billing")]
+        public async Task<IActionResult> UpdateBillingById([FromBody] UpdateBillingDto dto)
+        {
+            var result = await _billingService.UpdateBillingAsync(dto);
+            if (!result.IsSuccess && !string.IsNullOrEmpty(result.ErrorMessage))
+            {
+                return BadRequest(result.ErrorMessage);
+            }
+            return Ok(result.Data);
+        }
+
     }
 }

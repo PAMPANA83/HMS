@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Button, Card, Container, Form } from "react-bootstrap";
 import "../../Login.css";
 import { UserLoginService } from "../services/UserLogin.service";
 import { useNavigate } from "react-router-dom";
@@ -61,25 +62,45 @@ const generateHash = (password: string) => {
 
   return (
     <div className="login-container">
-      <form className="login-box" onSubmit={handleLogin}>
-        <h2>Login</h2>
+      <Container className="px-3">
+        <Card className="login-box border-0 mx-auto">
+          <Card.Body>
+            <h2 className="login-header">Login</h2>
 
-        <input
-          type="text"
-          placeholder="Enter Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
+            <Form onSubmit={handleLogin}>
+              <Form.Group className="mb-3" controlId="login-username">
+                <Form.Label className="login-form-label">Username</Form.Label>
+                <Form.Control
+                  className="login-input"
+                  type="text"
+                  placeholder="Enter Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                  required
+                />
+              </Form.Group>
 
-        <input
-          type="password"
-          placeholder="Enter Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+              <Form.Group className="mb-4" controlId="login-password">
+                <Form.Label className="login-form-label">Password</Form.Label>
+                <Form.Control
+                  className="login-input"
+                  type="password"
+                  placeholder="Enter Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+              </Form.Group>
 
-        <button type="submit">Login</button>
-      </form>
+              <Button variant="primary" type="submit" className="login-submit w-100">
+                Login
+              </Button>
+            </Form>
+          </Card.Body>
+        </Card>
+      </Container>
     </div>
   );
 };

@@ -1,27 +1,15 @@
+import { useCallback, useEffect, useState } from "react";
+import { Button, Card, Col, Form } from "react-bootstrap";
+import { message } from "antd";
 import {
-  Button,
-  Card,
-  Col,
-  Form,
-  Input,
-  Row,
-  Select,
-  Switch,
-  Upload,
-  message,
-  Typography,
-  Divider,
-} from "antd";
-import { 
-  UploadOutlined, 
-  ClearOutlined, 
-  UserOutlined, 
-  EnvironmentOutlined, 
   ApartmentOutlined,
-  SafetyCertificateOutlined 
+  ClearOutlined,
+  EnvironmentOutlined,
+  SafetyCertificateOutlined,
+  UploadOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
-import type { UploadFile } from "antd/es/upload/interface";
-import { useCallback, useState, useEffect } from "react";
+
 import { createuser, uploadImage } from "../services/UserLogin.service";
 import { CreateUserDto } from "../models/User.dto";
 import { getCompany } from "../services/Company.service";
@@ -31,8 +19,6 @@ import { getRole } from "../services/Role.service";
 import { getCountries } from "../services/country.service";
 import { getState } from "../services/State.service";
 import { getCity } from "../services/City.service";
-
-const { Title, Text } = Typography;
 
 interface CompanyOption {
   id?: number;
@@ -72,26 +58,75 @@ interface CityOption {
   name: string;
 }
 
+interface FormDataState {
+  companyId: string;
+  branchId: string;
+  departmentId: string;
+  roleId: string;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  gender: string;
+  dateOfBirth: string;
+  joinedDate: string;
+  email: string;
+  password: string;
+  phone: string;
+  emergencyContact: string;
+  addressLine1: string;
+  countryId: string;
+  stateId: string;
+  cityId: string;
+  postalCode: string;
+  isActive: boolean;
+}
+
 const employeeTypes = [
-  { code: 'DOC', label: 'Doctor (DOC)' },
-  { code: 'ADM', label: 'Administrative (ADM)' },
-  { code: 'NUR', label: 'Nurse (NUR)' },
-  { code: 'LAB', label: 'Laboratory Technician (LAB)' },
-  { code: 'PHAR', label: 'Pharmacist (PHAR)' },
-  { code: 'REC', label: 'Receptionist (REC)' }
+  { code: "DOC", label: "Doctor (DOC)" },
+  { code: "ADM", label: "Administrative (ADM)" },
+  { code: "NUR", label: "Nurse (NUR)" },
+  { code: "LAB", label: "Laboratory Technician (LAB)" },
+  { code: "PHAR", label: "Pharmacist (PHAR)" },
+  { code: "REC", label: "Receptionist (REC)" },
 ];
 
+const initialFormState: FormDataState = {
+  companyId: "",
+  branchId: "",
+  departmentId: "",
+  roleId: "",
+  employeeCode: "",
+  firstName: "",
+  lastName: "",
+  gender: "",
+  dateOfBirth: "",
+  joinedDate: "",
+  email: "",
+  password: "",
+  phone: "",
+  emergencyContact: "",
+  addressLine1: "",
+  countryId: "",
+  stateId: "",
+  cityId: "",
+  postalCode: "",
+  isActive: true,
+};
+
 export function UserMaster() {
-  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [companyList, setCompany] = useState<CompanyOption[]>([]);
   const [branchList, setBranch] = useState<BranchOption[]>([]);
   const [departmentList, setDepartment] = useState<DepartmentOption[]>([]);
-  const [RoleList, setrole] = useState<RolesOption[]>([]);
+  const [roleList, setRole] = useState<RolesOption[]>([]);
   const [countries, setCountries] = useState<CountryOption[]>([]);
   const [states, setStates] = useState<StateOption[]>([]);
   const [cities, setCities] = useState<CityOption[]>([]);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [formData, setFormData] = useState<FormDataState>(initialFormState);
+
+  const storedUser = localStorage.getItem("user");
 
   const extractDataArray = <T,>(result: any): T[] => {
     if (Array.isArray(result)) return result;
@@ -99,8 +134,6 @@ export function UserMaster() {
     if (Array.isArray(result?.data?.data)) return result.data.data;
     return [];
   };
-
-  const storedUser = localStorage.getItem("user");
 
   const loadCompany = useCallback(async () => {
     try {
@@ -146,11 +179,11 @@ export function UserMaster() {
   const loadRoles = useCallback(async () => {
     try {
       const result = await getRole();
-      setrole(extractDataArray<RolesOption>(result));
+      setRole(extractDataArray<RolesOption>(result));
     } catch (error) {
       console.error("Load role error:", error);
       message.error("Failed to load role");
-      setrole([]);
+      setRole([]);
     }
   }, []);
 
@@ -210,32 +243,41 @@ export function UserMaster() {
     loadCountry();
   }, [loadCompany, loadBranch, loadRoles, loadCountry]);
 
-  const handleBranchChange = (value: number) => {
-    form.setFieldsValue({ departmentId: undefined });
+  const updateField = (field: keyof FormDataState, value: string | boolean) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleBranchChange = (value: string) => {
+    updateField("branchId", value);
+    updateField("departmentId", "");
     setDepartment([]);
     if (value) loadDepartment(Number(value));
   };
 
-  const handleCountryChange = (value: number) => {
-    form.setFieldsValue({ stateId: undefined, cityId: undefined });
+  const handleCountryChange = (value: string) => {
+    updateField("countryId", value);
+    updateField("stateId", "");
+    updateField("cityId", "");
     setStates([]);
     setCities([]);
     if (value) loadState(Number(value));
   };
 
-  const handleStateChange = (value: number) => {
-    form.setFieldsValue({ cityId: undefined });
+  const handleStateChange = (value: string) => {
+    updateField("stateId", value);
+    updateField("cityId", "");
     setCities([]);
     if (value) loadCity(Number(value));
   };
 
   const handleResetForm = () => {
-    form.resetFields();
-    setFileList([]);
+    setFormData(initialFormState);
+    setSelectedFile(null);
+    setFilePreview(null);
     setCompany([]);
     setBranch([]);
     setDepartment([]);
-    setrole([]);
+    setRole([]);
     setStates([]);
     setCities([]);
     loadCompany();
@@ -255,49 +297,81 @@ export function UserMaster() {
     }
   };
 
-  const handleSubmit = async (values: any) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      setSelectedFile(null);
+      setFilePreview(null);
+      return;
+    }
+
+    setSelectedFile(file);
+    setFilePreview(URL.createObjectURL(file));
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const requiredFields: (keyof FormDataState)[] = [
+      "companyId",
+      "branchId",
+      "departmentId",
+      "roleId",
+      "employeeCode",
+      "firstName",
+      "gender",
+      "email",
+      "password",
+      "phone",
+    ];
+
+    const missingField = requiredFields.find((field) => !String(formData[field] ?? "").trim());
+    if (missingField) {
+      message.error("Please complete all required fields before submitting.");
+      return;
+    }
+
     try {
       setLoading(true);
 
       let profileImageUrlValue = "";
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        const file = fileList[0].originFileObj;
-        const uploadResult = await customUpload(file);
+      if (selectedFile) {
+        const uploadResult = await customUpload(selectedFile);
         if (uploadResult?.url) {
           profileImageUrlValue = uploadResult.url;
         }
       }
 
       const payload: CreateUserDto = {
-        companyId: Number(values.companyId),
-        branchId: Number(values.branchId),
-        departmentId: Number(values.departmentId),
-        roleId: Number(values.roleId),
-        employeeCode: values.employeeCode,
-        firstName: values.firstName,
-        lastName: values.lastName || "",
-        gender: values.gender,
-        dateOfBirth: values.dateOfBirth || "",
-        email: values.email,
-        password: values.password,
-        phone: values.phone,
-        emergencyContact: values.emergencyContact || "",
-        addressLine1: values.addressLine1 || "",
-        cityId: Number(values.cityId),
-        stateId: Number(values.stateId),
-        countryId: Number(values.countryId),
-        postalCode: values.postalCode || "",
-        isActive: values.isActive ?? true,
-        joinedDate: values.joinedDate || "",
+        companyId: Number(formData.companyId),
+        branchId: Number(formData.branchId),
+        departmentId: Number(formData.departmentId),
+        roleId: Number(formData.roleId),
+        employeeCode: formData.employeeCode,
+        firstName: formData.firstName,
+        lastName: formData.lastName || "",
+        gender: formData.gender,
+        dateOfBirth: formData.dateOfBirth || "",
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        emergencyContact: formData.emergencyContact || "",
+        addressLine1: formData.addressLine1 || "",
+        cityId: Number(formData.cityId),
+        stateId: Number(formData.stateId),
+        countryId: Number(formData.countryId),
+        postalCode: formData.postalCode || "",
+        isActive: formData.isActive ?? true,
+        joinedDate: formData.joinedDate || "",
         profileImageUrl: profileImageUrlValue,
-        createdBy: storedUser ? JSON.parse(storedUser).userId : 0
+        createdBy: storedUser ? JSON.parse(storedUser).userId : 0,
       };
 
       await createuser(payload);
       message.success("User created successfully");
-
-      form.resetFields();
-      setFileList([]);
+      setFormData(initialFormState);
+      setSelectedFile(null);
+      setFilePreview(null);
     } catch (error: any) {
       console.error(error);
       message.error(error?.response?.data?.message || "Failed to create user");
@@ -307,278 +381,263 @@ export function UserMaster() {
   };
 
   return (
-    <div style={{ padding: "24px", background: "#f8fafc", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        
-        {/* Header Section */}
-        <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div className="bg-light min-vh-100 p-3 p-md-4">
+      <div className="mx-auto" style={{ maxWidth: 1100 }}>
+        <div className="d-flex justify-content-between align-items-center mb-4">
           <div>
-            <Title level={3} style={{ margin: 0, fontWeight: 600, color: "#1e293b" }}>User Management</Title>
-            <Text type="secondary">Create a new system user profile and assign operational permissions.</Text>
+            <h3 className="mb-1 fw-bold text-dark">User Management</h3>
+            <p className="text-muted mb-0">Create a new system user profile and assign operational permissions.</p>
           </div>
         </div>
 
-        <Card 
-          bordered={false} 
-          style={{ 
-            borderRadius: "16px", 
-            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)" 
-          }}
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleSubmit}
-            autoComplete="off"
-            initialValues={{ isActive: true }}
-            requiredMark="optional"
-          >
-            {/* Section: Organizational Info */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <ApartmentOutlined style={{ color: "#3b82f6", fontSize: "18px" }} />
-              <Text strong style={{ fontSize: "16px", color: "#334155" }}>Organizational Context</Text>
-            </div>
-            
-            <Row gutter={20}>
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item name="companyId" label="Company" rules={[{ required: true, message: "Select company" }]}>
-                  <Select placeholder="Select Company" size="large" options={companyList.map((c) => ({ value: c.id, label: c.companyname }))} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item name="branchId" label="Branch" rules={[{ required: true, message: "Select branch" }]}>
-                  <Select placeholder="Select Branch" size="large" onChange={handleBranchChange} options={branchList.map((b) => ({ value: b.id, label: b.branchName }))} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item name="departmentId" label="Department" rules={[{ required: true, message: "Select department" }]}>
-                  <Select placeholder="Select Department" size="large" options={departmentList.map((d) => ({ value: d.id, label: d.name }))} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item name="roleId" label="Role" rules={[{ required: true, message: "Select role" }]}>
-                  <Select placeholder="Select Role" size="large" options={RoleList.map((d) => ({ value: d.id, label: d.roleName }))} />
-                </Form.Item>
-              </Col>
-            </Row>
+        <Card className="border-0 shadow-sm rounded-4">
+          <Card.Body className="p-2 p-md-4">
+            <Form onSubmit={handleSubmit} className="row g-3">
+              <div className="d-flex align-items-center gap-2 mb-2">
+                <ApartmentOutlined className="text-primary" />
+                <strong className="text-dark">Organizational Context</strong>
+              </div>
 
-            <Divider style={{ margin: "12px 0 24px 0" }} />
+              <Form.Group as={Col} xs={12} sm={6} md={3} controlId="companyId">
+                <Form.Label>Company</Form.Label>
+                <Form.Select value={formData.companyId} onChange={(e) => updateField("companyId", e.target.value)}>
+                  <option value="">Select Company</option>
+                  {companyList.map((c) => (
+                    <option key={c.id} value={String(c.id)}>
+                      {c.companyname}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
 
-            {/* Section: Personal & Account Info */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <UserOutlined style={{ color: "#3b82f6", fontSize: "18px" }} />
-              <Text strong style={{ fontSize: "16px", color: "#334155" }}>Personal & Account Details</Text>
-            </div>
+              <Form.Group as={Col} xs={12} sm={6} md={3} controlId="branchId">
+                <Form.Label>Branch</Form.Label>
+                <Form.Select value={formData.branchId} onChange={(e) => handleBranchChange(e.target.value)}>
+                  <option value="">Select Branch</option>
+                  {branchList.map((b) => (
+                    <option key={b.id} value={String(b.id)}>
+                      {b.branchName}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
 
-            <Row gutter={20}>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item name="employeeCode" label="Employee Type" rules={[{ required: true, message: "Select employee type" }]}>
-                  <Select placeholder="Select Employee Type" size="large" options={employeeTypes.map((d) => ({ value: d.code, label: d.label }))} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item name="firstName" label="First Name" rules={[{ required: true, message: "Enter first name" }]}>
-                  <Input placeholder="First Name" size="large" autoComplete="off" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item name="lastName" label="Last Name">
-                  <Input placeholder="Last Name" size="large" autoComplete="off" />
-                </Form.Item>
-              </Col>
+              <Form.Group as={Col} xs={12} sm={6} md={3} controlId="departmentId">
+                <Form.Label>Department</Form.Label>
+                <Form.Select value={formData.departmentId} onChange={(e) => updateField("departmentId", e.target.value)}>
+                  <option value="">Select Department</option>
+                  {departmentList.map((d) => (
+                    <option key={d.id} value={String(d.id)}>
+                      {d.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
 
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item name="gender" label="Gender" rules={[{ required: true, message: "Select gender" }]}>
-                  <Select placeholder="Select Gender" size="large">
-                    <Select.Option value="Male">Male</Select.Option>
-                    <Select.Option value="Female">Female</Select.Option>
-                    <Select.Option value="Other">Other</Select.Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item name="dateOfBirth" label="Date of Birth">
-                  <Input type="date" size="large" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item name="joinedDate" label="Joined Date">
-                  <Input type="date" size="large" />
-                </Form.Item>
-              </Col>
+              <Form.Group as={Col} xs={12} sm={6} md={3} controlId="roleId">
+                <Form.Label>Role</Form.Label>
+                <Form.Select value={formData.roleId} onChange={(e) => updateField("roleId", e.target.value)}>
+                  <option value="">Select Role</option>
+                  {roleList.map((d) => (
+                    <option key={d.id} value={String(d.id)}>
+                      {d.roleName}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
 
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item name="email" label="Email Address" rules={[{ required: true, type: "email", message: "Enter valid email" }]}>
-                  <Input placeholder="user@example.com" size="large" autoComplete="off" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item name="password" label="Password" rules={[{ required: true, message: "Enter password" }]}>
-                  <Input.Password placeholder="••••••••" size="large" autoComplete="new-password" />
-                </Form.Item>
-              </Col>
+              <div className="w-100 border-top my-2" />
 
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item name="phone" label="Phone Number" rules={[{ required: true, message: "Enter phone number" }]}>
-                  <Input placeholder="9876543210" size="large" autoComplete="off" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item name="emergencyContact" label="Emergency Contact">
-                  <Input placeholder="Emergency contact number" size="large" autoComplete="off" />
-                </Form.Item>
-              </Col>
-            </Row>
+              <div className="d-flex align-items-center gap-2 mb-2">
+                <UserOutlined className="text-primary" />
+                <strong className="text-dark">Personal & Account Details</strong>
+              </div>
 
-            <Divider style={{ margin: "12px 0 24px 0" }} />
+              <Form.Group as={Col} xs={12} sm={6} md={4} controlId="employeeCode">
+                <Form.Label>Employee Type</Form.Label>
+                <Form.Select value={formData.employeeCode} onChange={(e) => updateField("employeeCode", e.target.value)}>
+                  <option value="">Select Employee Type</option>
+                  {employeeTypes.map((d) => (
+                    <option key={d.code} value={d.code}>
+                      {d.label}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
 
-            {/* Section: Location Info */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <EnvironmentOutlined style={{ color: "#3b82f6", fontSize: "18px" }} />
-              <Text strong style={{ fontSize: "16px", color: "#334155" }}>Location & Address</Text>
-            </div>
+              <Form.Group as={Col} xs={12} sm={6} md={4} controlId="firstName">
+                <Form.Label>First Name</Form.Label>
+                <Form.Control value={formData.firstName} onChange={(e) => updateField("firstName", e.target.value)} placeholder="First Name" />
+              </Form.Group>
 
-            <Row gutter={20}>
-              <Col xs={24} md={24}>
-                <Form.Item name="addressLine1" label="Street Address">
-                  <Input.TextArea placeholder="Enter full address..." rows={2} autoComplete="off" />
-                </Form.Item>
-              </Col>
+              <Form.Group as={Col} xs={12} sm={6} md={4} controlId="lastName">
+                <Form.Label>Last Name</Form.Label>
+                <Form.Control value={formData.lastName} onChange={(e) => updateField("lastName", e.target.value)} placeholder="Last Name" />
+              </Form.Group>
 
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item name="countryId" label="Country">
-                  <Select placeholder="Select Country" size="large" onChange={handleCountryChange} options={countries.map((d) => ({ value: d.id, label: d.name }))} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item name="stateId" label="State">
-                  <Select placeholder="Select State" size="large" onChange={handleStateChange} options={states.map((b) => ({ value: b.id, label: b.name }))} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item name="cityId" label="City">
-                  <Select placeholder="Select City" size="large" options={cities.map((c) => ({ value: c.id, label: c.name }))} />
-                </Form.Item>
-              </Col>
+              <Form.Group as={Col} xs={12} sm={6} md={4} controlId="gender">
+                <Form.Label>Gender</Form.Label>
+                <Form.Select value={formData.gender} onChange={(e) => updateField("gender", e.target.value)}>
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </Form.Select>
+              </Form.Group>
 
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item name="postalCode" label="Postal Code">
-                  <Input placeholder="Postal Code" size="large" autoComplete="off" />
-                </Form.Item>
-              </Col>
-            </Row>
+              <Form.Group as={Col} xs={12} sm={6} md={4} controlId="dateOfBirth">
+                <Form.Label>Date of Birth</Form.Label>
+                <Form.Control type="date" value={formData.dateOfBirth} onChange={(e) => updateField("dateOfBirth", e.target.value)} />
+              </Form.Group>
 
-            <Divider style={{ margin: "12px 0 24px 0" }} />
+              <Form.Group as={Col} xs={12} sm={6} md={4} controlId="joinedDate">
+                <Form.Label>Joined Date</Form.Label>
+                <Form.Control type="date" value={formData.joinedDate} onChange={(e) => updateField("joinedDate", e.target.value)} />
+              </Form.Group>
 
-            {/* Section: Media & Access Controls */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <SafetyCertificateOutlined style={{ color: "#3b82f6", fontSize: "18px" }} />
-              <Text strong style={{ fontSize: "16px", color: "#334155" }}>Access & Profile Setup</Text>
-            </div>
+              <Form.Group as={Col} xs={12} sm={6} controlId="email">
+                <Form.Label>Email Address</Form.Label>
+                <Form.Control type="email" value={formData.email} onChange={(e) => updateField("email", e.target.value)} placeholder="user@example.com" />
+              </Form.Group>
 
-            <Row gutter={20} align="middle">
-              <Col xs={24} sm={12}>
-                <Form.Item name="isActive" valuePropName="checked" style={{ marginBottom: 0 }}>
-                  <div style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    justifyContent: "space-between", 
-                    padding: "12px 16px", 
-                    background: "#f1f5f9", 
-                    borderRadius: "10px",
-                    border: "1px solid #e2e8f0"
-                  }}>
-                    <div>
-                      <Text strong style={{ display: "block", color: "#334155" }}>Account Status</Text>
-                      <Text type="secondary" style={{ fontSize: "13px" }}>Enable or disable user system access</Text>
-                    </div>
-                    <Switch />
+              <Form.Group as={Col} xs={12} sm={6} controlId="password">
+                <Form.Label>Password</Form.Label>
+                <Form.Control type="password" value={formData.password} onChange={(e) => updateField("password", e.target.value)} placeholder="••••••••" />
+              </Form.Group>
+
+              <Form.Group as={Col} xs={12} sm={6} controlId="phone">
+                <Form.Label>Phone Number</Form.Label>
+                <Form.Control value={formData.phone} onChange={(e) => updateField("phone", e.target.value)} placeholder="9876543210" />
+              </Form.Group>
+
+              <Form.Group as={Col} xs={12} sm={6} controlId="emergencyContact">
+                <Form.Label>Emergency Contact</Form.Label>
+                <Form.Control value={formData.emergencyContact} onChange={(e) => updateField("emergencyContact", e.target.value)} placeholder="Emergency contact number" />
+              </Form.Group>
+
+              <div className="w-100 border-top my-2" />
+
+              <div className="d-flex align-items-center gap-2 mb-2">
+                <EnvironmentOutlined className="text-primary" />
+                <strong className="text-dark">Location & Address</strong>
+              </div>
+
+              <Form.Group as={Col} xs={12} controlId="addressLine1">
+                <Form.Label>Street Address</Form.Label>
+                <Form.Control as="textarea" rows={2} value={formData.addressLine1} onChange={(e) => updateField("addressLine1", e.target.value)} placeholder="Enter full address..." />
+              </Form.Group>
+
+              <Form.Group as={Col} xs={12} sm={6} md={4} controlId="countryId">
+                <Form.Label>Country</Form.Label>
+                <Form.Select value={formData.countryId} onChange={(e) => handleCountryChange(e.target.value)}>
+                  <option value="">Select Country</option>
+                  {countries.map((d) => (
+                    <option key={d.id} value={String(d.id)}>
+                      {d.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+
+              <Form.Group as={Col} xs={12} sm={6} md={4} controlId="stateId">
+                <Form.Label>State</Form.Label>
+                <Form.Select value={formData.stateId} onChange={(e) => handleStateChange(e.target.value)}>
+                  <option value="">Select State</option>
+                  {states.map((b) => (
+                    <option key={b.id} value={String(b.id)}>
+                      {b.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+
+              <Form.Group as={Col} xs={12} sm={6} md={4} controlId="cityId">
+                <Form.Label>City</Form.Label>
+                <Form.Select value={formData.cityId} onChange={(e) => updateField("cityId", e.target.value)}>
+                  <option value="">Select City</option>
+                  {cities.map((c) => (
+                    <option key={c.id} value={String(c.id)}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+
+              <Form.Group as={Col} xs={12} controlId="postalCode">
+                <Form.Label>Postal Code</Form.Label>
+                <Form.Control value={formData.postalCode} onChange={(e) => updateField("postalCode", e.target.value)} placeholder="Postal Code" />
+              </Form.Group>
+
+              <div className="w-100 border-top my-2" />
+
+              <div className="d-flex align-items-center gap-2 mb-2">
+                <SafetyCertificateOutlined className="text-primary" />
+                <strong className="text-dark">Access & Profile Setup</strong>
+              </div>
+
+              <Form.Group as={Col} xs={12} sm={6} className="d-flex align-items-stretch">
+                <div className="w-100 rounded-3 border bg-light p-3 d-flex align-items-center justify-content-between gap-3">
+                  <div>
+                    <div className="fw-semibold text-dark">Account Status</div>
+                    <small className="text-muted">Enable or disable user system access</small>
                   </div>
-                </Form.Item>
-              </Col>
+                  <Form.Check
+                    type="switch"
+                    id="isActive"
+                    checked={formData.isActive}
+                    onChange={(e) => updateField("isActive", e.target.checked)}
+                  />
+                </div>
+              </Form.Group>
 
-              <Col xs={24} sm={12}>
-                <Form.Item label="Profile Avatar" style={{ marginBottom: 0 }}>
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "16px",
-                    padding: "12px 16px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "12px"
-                  }}>
-                    <Upload
-                      accept="image/png,image/jpeg,image/jpg"
-                      maxCount={1}
-                      showUploadList={false}
-                      beforeUpload={() => false}
-                      fileList={fileList}
-                      onChange={({ fileList }) => setFileList(fileList)}
+              <Form.Group as={Col} xs={12} sm={6} controlId="profileImage">
+                <div className="rounded-3 border bg-light p-3 h-100">
+                  <Form.Label className="d-block mb-3">Profile Avatar</Form.Label>
+                  <div className="d-flex align-items-center gap-3 flex-wrap">
+                    <label
+                      className="d-flex align-items-center justify-content-center rounded-circle border border-2 border-secondary-subtle bg-secondary-subtle position-relative overflow-hidden"
+                      style={{ width: 64, height: 64, cursor: "pointer" }}
                     >
-                      <div style={{
-                        width: "64px",
-                        height: "64px",
-                        borderRadius: "50%",
-                        background: "#e2e8f0",
-                        backgroundImage: fileList.length > 0 && fileList[0].originFileObj ? `url(${URL.createObjectURL(fileList[0].originFileObj)})` : undefined,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        border: "2px dashed #94a3b8",
-                        position: "relative",
-                        overflow: "hidden"
-                      }}>
-                        {fileList.length === 0 && <UploadOutlined style={{ fontSize: "20px", color: "#64748b" }} />}
-                      </div>
-                    </Upload>
+                      {filePreview ? (
+                        <img src={filePreview} alt="Preview" className="w-100 h-100 object-fit-cover" />
+                      ) : (
+                        <UploadOutlined className="text-secondary" style={{ fontSize: 20 }} />
+                      )}
+                      <input type="file" accept="image/png,image/jpeg,image/jpg" className="d-none" onChange={handleFileChange} />
+                    </label>
                     <div>
-                      <Text strong style={{ display: "block", color: "#334155" }}>Upload Avatar</Text>
-                      <Text type="secondary" style={{ fontSize: "12px", display: "block", marginBottom: "4px" }}>PNG, JPG or JPEG up to 5MB</Text>
-                      {fileList.length > 0 && (
-                        <Button 
-                          type="link" 
-                          danger 
-                          size="small" 
-                          style={{ padding: 0, height: "auto", fontSize: "12px" }}
-                          onClick={() => setFileList([])}
+                      <div className="fw-semibold text-dark">Upload Avatar</div>
+                      <small className="text-muted d-block mb-2">PNG, JPG or JPEG up to 5MB</small>
+                      {selectedFile && (
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="p-0 text-danger"
+                          onClick={() => {
+                            setSelectedFile(null);
+                            setFilePreview(null);
+                          }}
                         >
                           Remove photo
                         </Button>
                       )}
                     </div>
                   </div>
-                </Form.Item>
-              </Col>
-            </Row>
+                </div>
+              </Form.Group>
 
-            <Divider style={{ margin: "12px 0 24px 0" }} />
+              <div className="w-100 border-top my-2" />
 
-            {/* Form Actions */}
-            <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
-              <Button 
-                icon={<ClearOutlined />} 
-                onClick={handleResetForm} 
-                disabled={loading} 
-                size="large"
-                style={{ marginRight: 12, borderRadius: "8px" }}
-              >
-                Reset Form
-              </Button>
-              <Button 
-                type="primary" 
-                htmlType="submit" 
-                loading={loading} 
-                size="large"
-                style={{ borderRadius: "8px", paddingLeft: 24, paddingRight: 24 }}
-              >
-                Create User
-              </Button>
-            </Form.Item>
-          </Form>
+              <div className="col-12 d-flex justify-content-end gap-2 flex-wrap">
+                <Button type="button" variant="outline-secondary" className="d-flex align-items-center gap-2" onClick={handleResetForm} disabled={loading}>
+                  <ClearOutlined /> Reset Form
+                </Button>
+                <Button type="submit" variant="primary" className="px-4" disabled={loading}>
+                  {loading ? "Creating..." : "Create User"}
+                </Button>
+              </div>
+            </Form>
+          </Card.Body>
         </Card>
       </div>
     </div>

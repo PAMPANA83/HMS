@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Table, Tag, Button, Card, Input, Space, message, Typography, Select, Row, Col, Tooltip, Popconfirm } from "antd";
+import { Tag, Button, Card, Input, Space, message, Typography, Select, Row, Col, Tooltip, Popconfirm } from "antd";
 import { SearchOutlined, ReloadOutlined, PlusOutlined, BankOutlined, FilterOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table/interface";
 import { useNavigate } from "react-router-dom";
+import DataTable, { type TableColumn } from "react-data-table-component";
 import { CompanyMastersDto } from "../models/Company.dto";
 import { getCompany } from "../services/Company.service";
 // If you have a delete service, import it here:
@@ -79,7 +79,7 @@ export const Company: React.FC = () => {
       message.success(`Successfully deleted ${selectedRowKeys.length} companies`);
       setSelectedRowKeys([]);
       await fetchCompanies();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Batch delete error:", error);
       message.error("Failed to delete selected companies");
     } finally {
@@ -87,36 +87,32 @@ export const Company: React.FC = () => {
     }
   };
 
-  const columns: ColumnsType<CompanyMastersDto> = [
+  const columns: TableColumn<CompanyMastersDto>[] = [
     {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-      width: 70,
-      fixed: "left",
-      sorter: (a, b) => a.id - b.id,
+      name: "ID",
+      selector: (row) => row.id,
+      sortable: true,
+      width: "70px",
     },
     {
-      title: "Company Name",
-      dataIndex: "companyname",
-      key: "companyname",
-      width: 240,
-      fixed: "left",
-      ellipsis: true,
-      sorter: (a, b) => (a.companyname || "").localeCompare(b.companyname || ""),
-      render: (text: string, record: CompanyMastersDto) => (
+      name: "Company Name",
+      selector: (row) => row.companyname || "-",
+      sortable: true,
+      grow: 2,
+      wrap: true,
+      cell: (row) => (
         <Space size={8}>
           <BankOutlined style={{ color: "#3b82f6" }} />
-          <Text strong style={{ color: "#1e293b" }}>{text || record.companyname || "—"}</Text>
+          <Text strong style={{ color: "#1e293b" }}>{row.companyname || "—"}</Text>
         </Space>
       ),
     },
     {
-      title: "Reg. No",
-      dataIndex: "registrationNumber",
-      key: "registrationNumber",
-      width: 150,
-      render: (value: string) => (
+      name: "Reg. No",
+      selector: (row) => row.registrationNumber || "-",
+      sortable: true,
+      width: "150px",
+      cell: (row) => (
         <span style={{ 
           background: "#f1f5f9", 
           padding: "2px 8px", 
@@ -127,81 +123,80 @@ export const Company: React.FC = () => {
           color: "#475569",
           fontSize: "12px"
         }}>
-          {value || "—"}
+          {row.registrationNumber || "—"}
         </span>
       ),
     },
     {
-      title: "GSTIN",
-      dataIndex: "gstin",
-      key: "gstin",
-      width: 160,
-      render: (value: string) => (
+      name: "GSTIN",
+      selector: (row) => row.gstin || "-",
+      sortable: true,
+      hide: 768,
+      width: "160px",
+      cell: (row) => (
         <span style={{ fontFamily: "monospace", color: "#334155", fontWeight: 500 }}>
-          {value || "—"}
+          {row.gstin || "—"}
         </span>
       ),
     },
     {
-      title: "PAN",
-      dataIndex: "panNumber",
-      key: "panNumber",
-      width: 130,
-      render: (value: string) => (
+      name: "PAN",
+      selector: (row) => row.panNumber || "-",
+      sortable: true,
+      hide: 768,
+      width: "130px",
+      cell: (row) => (
         <span style={{ fontFamily: "monospace", color: "#334155", fontWeight: 500 }}>
-          {value || "—"}
+          {row.panNumber || "—"}
         </span>
       ),
     },
     {
-      title: "Contact Info",
-      key: "contact",
-      width: 220,
-      render: (_, record) => (
+      name: "Contact Info",
+      width: "220px",
+      cell: (row) => (
         <div>
-          <div style={{ color: "#1e293b", fontWeight: 500 }}>{record.email || "—"}</div>
-          <div style={{ color: "#64748b", fontSize: "12px" }}>{record.phone || "—"}</div>
+          <div style={{ color: "#1e293b", fontWeight: 500 }}>{row.email || "—"}</div>
+          <div style={{ color: "#64748b", fontSize: "12px" }}>{row.phone || "—"}</div>
         </div>
       ),
     },
     {
-      title: "City",
-      dataIndex: "cityName",
-      key: "cityName",
-      width: 140,
+      name: "City",
+      selector: (row) => row.cityName || "-",
+      sortable: true,
+      width: "140px",
     },
     {
-      title: "State",
-      dataIndex: "stateName",
-      key: "stateName",
-      width: 140,
+      name: "State",
+      selector: (row) => row.stateName || "-",
+      sortable: true,
+      width: "140px",
     },
     {
-      title: "Status",
-      dataIndex: "isActive",
-      key: "isActive",
-      width: 120,
-      align: "center",
-      render: (isActive: boolean) => (
-        <Tag color={isActive ? "success" : "error"} style={{ borderRadius: "6px", paddingInline: "8px" }}>
-          {isActive ? "ACTIVE" : "INACTIVE"}
+      name: "Status",
+      selector: (row) => row.isActive,
+      sortable: true,
+      center: true,
+      width: "120px",
+      cell: (row) => (
+        <Tag color={row.isActive ? "success" : "error"} style={{ borderRadius: "6px", paddingInline: "8px" }}>
+          {row.isActive ? "ACTIVE" : "INACTIVE"}
         </Tag>
       ),
     },
     {
-      title: "Actions",
-      key: "actions",
-      width: 120,
-      fixed: "right",
-      align: "center",
-      render: (_, record: CompanyMastersDto) => (
+      name: "Actions",
+      width: "120px",
+      center: true,
+      cell: (row) => (
         <Space size="small">
           <Tooltip title="Edit">
             <Button
               type="text"
               icon={<EditOutlined style={{ color: "#3b82f6" }} />}
               size="small"
-              onClick={() => handleEdit(record)}
+              onClick={() => handleEdit(row)}
               style={{ background: "#eff6ff", borderRadius: "6px", width: 30, height: 30 }}
             />
           </Tooltip>
@@ -209,7 +204,7 @@ export const Company: React.FC = () => {
           <Popconfirm
             title="Delete Company"
             description="Are you sure you want to delete this company?"
-            onConfirm={() => handleDelete(record.id)}
+            onConfirm={() => handleDelete(row.id)}
             okText="Yes"
             cancelText="No"
           >
@@ -235,7 +230,6 @@ export const Company: React.FC = () => {
 
     const search = searchText.trim().toLowerCase();
     const matchesSearch = !search || [
-      company.name,
       company.companyname,
       company.registrationNumber,
       company.gstin,
@@ -261,16 +255,17 @@ export const Company: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: "28px", background: "#f8fafc", minHeight: "100vh" }}>
+    <div className="company-page" style={{ padding: "28px", background: "#f8fafc", minHeight: "100vh" }}>
       <div style={{ maxWidth: 1500, margin: "0 auto" }}>
         
         {/* Modern Header Section */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <div>
             <Title level={3} style={{ margin: 0, fontWeight: 700, color: "#0f172a" }}>Company Master</Title>
-            <Text type="secondary" style={{ fontSize: "14px" }}>Manage registered corporate entities, tax details, and statuses.</Text>
+            
           </div>
           <Button
+            className="company-add-button"
             type="primary"
             icon={<PlusOutlined />}
             size="large"
@@ -409,25 +404,27 @@ export const Company: React.FC = () => {
             </Text>
           </div>
 
-          {/* Modern Table Component */}
-          <Table<CompanyMastersDto>
-            rowKey="id"
-            loading={loading}
+          <DataTable
+            className="company-data-table"
             columns={columns}
-            dataSource={filteredData}
-            bordered={false}
-            size="middle"
-            rowSelection={{
-              selectedRowKeys,
-              onChange: (keys) => setSelectedRowKeys(keys),
-            }}
-            scroll={{ x: 1300 }}
-            pagination={{
-              defaultPageSize: 5,
-              pageSize: 5,
-              showSizeChanger: true,
-              pageSizeOptions: ["5", "10", "20", "50", "100"],
-              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} companies`,
+            data={filteredData}
+            keyField="id"
+            selectableRows
+            selectableRowsHighlight
+            onSelectedRowsChange={({ selectedRows }) => setSelectedRowKeys(selectedRows.map((row) => row.id))}
+            clearSelectedRows={selectedRowKeys.length === 0}
+            pagination
+            paginationPerPage={5}
+            paginationRowsPerPageOptions={[5, 10, 20, 50, 100]}
+            progressPending={loading}
+            persistTableHead
+            highlightOnHover
+            responsive
+            noDataComponent={<div className="py-4 text-muted">No companies found</div>}
+            customStyles={{
+              headCells: { style: { fontWeight: 600, color: "#334155", backgroundColor: "#f8fafc" } },
+              rows: { style: { minHeight: "58px" } },
+              cells: { style: { paddingLeft: "12px", paddingRight: "12px" } },
             }}
           />
         </Card>

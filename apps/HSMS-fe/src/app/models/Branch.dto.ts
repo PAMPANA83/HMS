@@ -22,6 +22,7 @@ export interface BranchMastersDto {
   updatedAt: string;
 }
 
+
 export interface CreateBranchDto {
   companyId: number;
   branchName: string;

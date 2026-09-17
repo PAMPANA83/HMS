@@ -31,5 +31,11 @@ namespace HSMS.Domain.Domains
             CreatedAt = createdAt;
             CreatedBy = createdBy;
         }
+
+        // Convenience overload: defaults CreatedAt to now and CreatedBy to null
+        public Billingtable(int? id, string? billNumber, int patientId, int? appointmentId, decimal? totalAmount, decimal? paidAmount, string? paymentStatus, string paymentMethod)
+            : this(id, billNumber, patientId, appointmentId, totalAmount, paidAmount, paymentStatus, paymentMethod, DateTimeOffset.Now, null)
+        {
+        }
     }
 }

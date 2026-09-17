@@ -1,4 +1,5 @@
-import { Card, Button, Table, Space, Popconfirm, Modal, Form, Input, Select, message, Row, Col, Typography, Tooltip } from "antd";
+import { Card, Button, Modal, Form, Row, Col, Spinner } from "react-bootstrap";
+import DataTable, { type TableColumn } from "react-data-table-component";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, ReloadOutlined, FilterOutlined, ApartmentOutlined } from "@ant-design/icons";
 import { useCallback, useEffect, useState, useMemo } from "react";
 
@@ -15,23 +16,25 @@ import {
   CreateDepartmentDto,
 } from "../models/Department.dto";
 
-const { Title, Text } = Typography;
+const notify = (text: string) => window.alert(text);
 
 interface BranchOption {
   id?: number; 
   branchName?: string;
 }
 
-const extractDataArray = <T,>(result: any): T[] => {
+const extractDataArray = <T,>(result: unknown): T[] => {
+  if (!result || typeof result !== "object") return [];
+  const response = result as { data?: unknown };
   if (Array.isArray(result)) return result;
-  if (Array.isArray(result?.data)) return result.data;
-  if (Array.isArray(result?.data?.data)) return result.data.data;
+  if (Array.isArray(response.data)) return response.data as T[];
+  if (response.data && typeof response.data === "object" && Array.isArray((response.data as { data?: unknown }).data)) {
+    return (response.data as { data: T[] }).data;
+  }
   return [];
 };
 
 export function Departments() {
-  const [form] = Form.useForm<CreateDepartmentDto>();
-
   const [departments, setDepartments] = useState<DepartmentDto[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
 
@@ -48,6 +51,7 @@ export function Departments() {
   // Multi-select & Batch Delete States
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [batchDeleteLoading, setBatchDeleteLoading] = useState(false);
+  const [formData, setFormData] = useState<CreateDepartmentDto>({ branchId: 0, name: "", code: "" });
 
   const loadDepartments = useCallback(async () => {
     setLoading(true);
@@ -57,7 +61,7 @@ export function Departments() {
       setDepartments(data);
     } catch (error) {
       console.error("Failed to load departments:", error);
-      message.error("Failed to load departments");
+      notify("Failed to load departments");
     } finally {
       setLoading(false);
     }
@@ -71,7 +75,7 @@ export function Departments() {
       setBranches(data);
     } catch (error) {
       console.error("Failed to load branches:", error);
-      message.error("Failed to load branches");
+      notify("Failed to load branches");
     } finally {
       setBranchLoading(false);
     }
@@ -102,13 +106,13 @@ export function Departments() {
 
   const handleOpenAddModal = () => {
     setEditingDepartment(null);
-    form.resetFields();
+    setFormData({ branchId: 0, name: "", code: "" });
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = (record: DepartmentDto) => {
     setEditingDepartment(record);
-    form.setFieldsValue({
+    setFormData({
       branchId: record.branchId,
       name: record.name,
       code: record.code,
@@ -120,39 +124,39 @@ export function Departments() {
     if (submitLoading) return;
     setIsModalOpen(false);
     setEditingDepartment(null);
-    form.resetFields();
+    setFormData({ branchId: 0, name: "", code: "" });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!formData.branchId || formData.name.trim().length < 2 || formData.code.trim().length < 2) {
+      notify("Please complete the branch, department name, and code fields.");
+      return;
+    }
     try {
-      const values = await form.validateFields();
       setSubmitLoading(true);
 
       const payload: CreateDepartmentDto = {
-        branchId: Number(values.branchId),
-        name: values.name?.trim() || "",
-        code: values.code?.trim().toUpperCase() || "",
+        branchId: Number(formData.branchId),
+        name: formData.name.trim(),
+        code: formData.code.trim().toUpperCase(),
       };
 
       if (editingDepartment?.id) {
         await updateDepartment(editingDepartment.id, payload as unknown as DepartmentDto);
-        message.success("Department updated successfully");
+        notify("Department updated successfully");
       } else {
         await createDepartment(payload as unknown as DepartmentDto);
-        message.success("Department created successfully");
+        notify("Department created successfully");
       }
 
       setIsModalOpen(false);
       setEditingDepartment(null);
-      form.resetFields();
+      setFormData({ branchId: 0, name: "", code: "" });
       await loadDepartments();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Submit error:", error);
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.response?.data?.title ||
-        "Operation failed";
-      message.error(errorMessage);
+      notify(error instanceof Error ? error.message : "Operation failed");
     } finally {
       setSubmitLoading(false);
     }
@@ -161,62 +165,60 @@ export function Departments() {
   const handleDelete = async (id: number) => {
     try {
       await deleteDepartment(id);
-      message.success("Department deleted successfully");
+      notify("Department deleted successfully");
       await loadDepartments();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Delete error:", error);
-      const errorMessage =
-        error?.response?.data?.message ||
-        "Failed to delete department";
-      message.error(errorMessage);
+      notify(error instanceof Error ? error.message : "Failed to delete department");
     }
   };
 
   const handleBatchDelete = async () => {
     if (selectedRowKeys.length === 0) return;
+    if (!window.confirm(`Delete ${selectedRowKeys.length} selected departments?`)) return;
     try {
       setBatchDeleteLoading(true);
       await Promise.all(selectedRowKeys.map((id) => deleteDepartment(Number(id))));
-      message.success(`Successfully deleted ${selectedRowKeys.length} departments`);
+      notify(`Successfully deleted ${selectedRowKeys.length} departments`);
       setSelectedRowKeys([]);
       await loadDepartments();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Batch delete error:", error);
-      message.error("Failed to delete selected departments");
+      notify("Failed to delete selected departments");
     } finally {
       setBatchDeleteLoading(false);
     }
   };
 
-  const columns = [
+  const columns: TableColumn<DepartmentDto>[] = [
     {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-      width: 80,
+      name: "ID",
+      selector: (row) => row.id,
+      sortable: true,
+      width: "80px",
     },
     {
-      title: "Branch Name",
-      dataIndex: "branchName",
-      key: "branchName",
-      render: (text: string) => (
-        <Space>
-          <ApartmentOutlined style={{ color: "#3b82f6" }} />
-          <Text strong style={{ color: "#334155" }}>{text || "—"}</Text>
-        </Space>
+      name: "Branch Name",
+      selector: (row) => row.branchName || "-",
+      sortable: true,
+      cell: (row) => (
+        <div className="d-flex align-items-center gap-2">
+          <ApartmentOutlined className="text-primary" />
+          <strong className="text-dark">{row.branchName || "-"}</strong>
+        </div>
       ),
     },
     {
-      title: "Department Name",
-      dataIndex: "name",
-      key: "name",
-      render: (text: string) => <Text style={{ color: "#1e293b", fontWeight: 500 }}>{text}</Text>,
+      name: "Department Name",
+      selector: (row) => row.name || "-",
+      sortable: true,
+      cell: (row) => <span className="fw-semibold text-dark">{row.name || "-"}</span>,
     },
     {
-      title: "Code",
-      dataIndex: "code",
-      key: "code",
-      render: (value: string) => (
+      name: "Code",
+      selector: (row) => row.code || "-",
+      sortable: true,
+      cell: (row) => (
         <span style={{ 
           background: "#f1f5f9", 
           padding: "2px 8px", 
@@ -226,243 +228,33 @@ export function Departments() {
           fontWeight: 600,
           color: "#475569"
         }}>
-          {value?.toUpperCase()}
+          {row.code?.toUpperCase() || "-"}
         </span>
       ),
     },
     {
-      title: "Actions",
-      key: "actions",
-      width: 120,
-      align: "center" as const,
-      render: (_: any, record: DepartmentDto) => (
-        <Space size="small">
-          <Tooltip title="Edit Department">
-            <Button
-              type="text"
-              icon={<EditOutlined style={{ color: "#3b82f6" }} />}
-              onClick={() => handleOpenEditModal(record)}
-              style={{ background: "#eff6ff", borderRadius: "6px" }}
-            />
-          </Tooltip>
-          <Popconfirm
-            title="Delete Department"
-            description="Are you sure you want to delete this department?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Tooltip title="Delete Department">
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-                style={{ background: "#fef2f2", borderRadius: "6px" }}
-              />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
+      name: "Actions",
+      width: "120px",
+      center: true,
+      cell: (row) => (
+        <div className="d-flex gap-2">
+          <Button variant="outline-primary" size="sm" onClick={() => handleOpenEditModal(row)}><EditOutlined /></Button>
+          <Button variant="outline-danger" size="sm" onClick={() => { if (window.confirm("Delete this department?")) handleDelete(row.id); }}><DeleteOutlined /></Button>
+        </div>
       ),
     },
   ];
 
   return (
-    <div style={{ padding: "24px", background: "#f8fafc", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        
-        {/* Header Section */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <div>
-            <Title level={3} style={{ margin: 0, fontWeight: 600, color: "#1e293b" }}>Departments Management</Title>
-            <Text type="secondary">Manage internal departments, codes, and operational branch mappings.</Text>
-          </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            size="large"
-            style={{ borderRadius: "8px", paddingLeft: 20, paddingRight: 20, boxShadow: "0 2px 4px rgba(59, 130, 246, 0.2)" }}
-            onClick={handleOpenAddModal}
-          >
-            Add Department
-          </Button>
-        </div>
+    <div className="department-page p-2 p-md-4 bg-light min-vh-100"><div className="mx-auto" style={{ maxWidth: 1200 }}>
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3"><div><h3 className="mb-1 fw-bold text-dark">Departments Management</h3><p className="text-muted mb-0">Manage internal departments, codes, and operational branch mappings.</p></div><Button variant="primary" onClick={handleOpenAddModal} className="department-add-button d-flex align-items-center justify-content-center gap-2"><PlusOutlined /> Add Department</Button></div>
+      <Card className="border-0 shadow-sm rounded-4"><Card.Body className="p-2 p-md-4">
+        <div className="bg-light rounded-3 border p-3 mb-3"><div className="d-flex align-items-center gap-2 mb-3"><FilterOutlined className="text-primary" /><strong>Filter & Search</strong></div><Row className="g-3"><Col xs={12} md={5}><div className="position-relative"><SearchOutlined className="position-absolute top-50 translate-middle-y ms-3 text-secondary" /><Form.Control className="ps-5" value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Search by name, code, or branch..." /></div></Col><Col xs={12} md={5}><Form.Select disabled={branchLoading} value={selectedBranchFilter || ""} onChange={(e) => setSelectedBranchFilter(e.target.value ? Number(e.target.value) : undefined)}><option value="">Filter by Branch</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.branchName}</option>)}</Form.Select></Col><Col xs={12} md={2}><Button variant="outline-secondary" className="w-100 d-flex align-items-center justify-content-center gap-2" onClick={() => { setSearchText(""); setSelectedBranchFilter(undefined); }}><ReloadOutlined /> Reset</Button></Col></Row></div>
+        {selectedRowKeys.length > 0 && <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 bg-primary-subtle border border-primary-subtle p-3 rounded-3 mb-3"><span className="text-primary">Selected <strong>{selectedRowKeys.length}</strong> items</span><Button variant="danger" disabled={batchDeleteLoading} onClick={handleBatchDelete} className="d-flex align-items-center gap-2">{batchDeleteLoading && <Spinner animation="border" size="sm" />}<DeleteOutlined /> Delete Selected</Button></div>}
+        <DataTable className="department-data-table" columns={columns} data={filteredDepartments} keyField="id" selectableRows selectableRowsHighlight onSelectedRowsChange={({ selectedRows }) => setSelectedRowKeys(selectedRows.map((row) => row.id))} clearSelectedRows={selectedRowKeys.length === 0} pagination paginationPerPage={5} paginationRowsPerPageOptions={[5, 10, 20, 50, 100]} progressPending={loading} persistTableHead highlightOnHover responsive noDataComponent={<div className="py-4 text-muted">No departments found</div>} customStyles={{ headCells: { style: { fontWeight: 600, backgroundColor: "#f8fafc" } }, rows: { style: { minHeight: "56px" } } }} />
+      </Card.Body></Card>
 
-        <Card
-          bordered={false}
-          style={{
-            borderRadius: "16px",
-            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
-          }}
-          bodyStyle={{ padding: "24px" }}
-        >
-          {/* MODERN FILTER BAR */}
-          <div style={{
-            background: "#f8fafc",
-            padding: "16px",
-            borderRadius: "12px",
-            border: "1px solid #e2e8f0",
-            marginBottom: "20px"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <FilterOutlined style={{ color: "#3b82f6" }} />
-              <Text strong style={{ color: "#334155", fontSize: "14px" }}>Filter & Search</Text>
-            </div>
-            
-            <Row gutter={[12, 12]}>
-              <Col xs={24} sm={12} md={10}>
-                <Input
-                  placeholder="Search by name, code, or branch..."
-                  prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  allowClear
-                  size="large"
-                  style={{ borderRadius: "8px" }}
-                />
-              </Col>
-              <Col xs={24} sm={12} md={10}>
-                <Select
-                  style={{ width: '100%', borderRadius: '8px' }}
-                  placeholder="Filter by Branch"
-                  allowClear
-                  showSearch
-                  size="large"
-                  optionFilterProp="label"
-                  loading={branchLoading}
-                  value={selectedBranchFilter}
-                  onChange={(value) => setSelectedBranchFilter(value)}
-                  options={branches.map((branch) => ({
-                    value: branch.id,
-                    label: branch.branchName,
-                  }))}
-                />
-              </Col>
-              <Col xs={24} sm={24} md={4} style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button 
-                  icon={<ReloadOutlined />} 
-                  onClick={() => { setSearchText(""); setSelectedBranchFilter(undefined); }}
-                  size="large"
-                  style={{ width: "100%", borderRadius: "8px", background: "#fff" }}
-                >
-                  Reset
-                </Button>
-              </Col>
-            </Row>
-          </div>
-
-          {/* Batch Delete Action Banner */}
-          {selectedRowKeys.length > 0 && (
-            <div style={{ 
-              display: "flex", justifyContent: "space-between", alignItems: "center", 
-              background: "#eff6ff", border: "1px solid #bfdbfe", padding: "10px 16px", 
-              borderRadius: "8px", marginBottom: "16px" 
-            }}>
-              <Text style={{ color: "#1e40af", fontWeight: 500 }}>
-                Selected <strong>{selectedRowKeys.length}</strong> items
-              </Text>
-              <Popconfirm
-                title="Batch Delete"
-                description={`Are you sure you want to delete ${selectedRowKeys.length} departments?`}
-                onConfirm={handleBatchDelete}
-                okText="Yes"
-                cancelText="No"
-              >
-                <Button 
-                  danger 
-                  type="primary" 
-                  icon={<DeleteOutlined />} 
-                  loading={batchDeleteLoading}
-                  size="middle"
-                >
-                  Delete Selected
-                </Button>
-              </Popconfirm>
-            </div>
-          )}
-
-          <Table
-            dataSource={filteredDepartments}
-            columns={columns}
-            rowKey="id"
-            loading={loading}
-            rowSelection={{
-              selectedRowKeys,
-              onChange: (keys) => setSelectedRowKeys(keys),
-            }}
-            pagination={{
-              defaultPageSize: 5,
-              pageSizeOptions: ['5', '10', '20', '50', '100'],
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} departments`,
-            }}
-          />
-
-          <Modal
-            title={<Text strong style={{ fontSize: "16px", color: "#1e293b" }}>{editingDepartment ? "Edit Department" : "Create Department"}</Text>}
-            open={isModalOpen}
-            onOk={handleSubmit}
-            onCancel={handleCloseModal}
-            confirmLoading={submitLoading}
-            okText={editingDepartment ? "Update Department" : "Create Department"}
-            cancelText="Cancel"
-            destroyOnClose
-            centered
-            okButtonProps={{ style: { borderRadius: "6px" } }}
-            cancelButtonProps={{ style: { borderRadius: "6px" } }}
-          >
-            <Form form={form} layout="vertical" autoComplete="off" style={{ marginTop: 16 }}>
-              <Form.Item
-                label="Branch"
-                name="branchId"
-                rules={[{ required: true, message: "Please select branch" }]}
-              >
-                <Select
-                  showSearch
-                  allowClear
-                  size="large"
-                  placeholder={branchLoading ? "Loading branches..." : "Select Branch"}
-                  loading={branchLoading}
-                  optionFilterProp="label"
-                  options={branches.map((branch) => ({
-                    value: branch.id,
-                    label: branch.branchName,
-                  }))}
-                />
-              </Form.Item>
-
-              <Form.Item
-                label="Department Name"
-                name="name"
-                rules={[
-                  { required: true, message: "Please enter department name" },
-                  { min: 2, message: "Department name must be at least 2 characters" },
-                ]}
-              >
-                <Input placeholder="Cardiology" size="large" />
-              </Form.Item>
-
-              <Form.Item
-                label="Department Code"
-                name="code"
-                rules={[
-                  { required: true, message: "Please enter department code" },
-                  { min: 2, max: 10, message: "Department code must be between 2 and 10 characters" },
-                ]}
-              >
-                <Input
-                  placeholder="CARD"
-                  maxLength={10}
-                  size="large"
-                  style={{ textTransform: "uppercase" }}
-                  onChange={(e) => {
-                    form.setFieldValue("code", e.target.value.toUpperCase());
-                  }}
-                />
-              </Form.Item>
-            </Form>
-          </Modal>
-        </Card>
-      </div>
-    </div>
+      <Modal show={isModalOpen} onHide={handleCloseModal} centered><Modal.Header closeButton><Modal.Title>{editingDepartment ? "Edit Department" : "Create Department"}</Modal.Title></Modal.Header><Form onSubmit={handleSubmit}><Modal.Body><Form.Group className="mb-3"><Form.Label>Branch</Form.Label><Form.Select required disabled={branchLoading} value={formData.branchId || ""} onChange={(e) => setFormData((previous) => ({ ...previous, branchId: Number(e.target.value) }))}><option value="">{branchLoading ? "Loading branches..." : "Select branch"}</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.branchName}</option>)}</Form.Select></Form.Group><Form.Group className="mb-3"><Form.Label>Department Name</Form.Label><Form.Control required minLength={2} value={formData.name} onChange={(e) => setFormData((previous) => ({ ...previous, name: e.target.value }))} placeholder="Cardiology" /></Form.Group><Form.Group><Form.Label>Department Code</Form.Label><Form.Control required minLength={2} maxLength={10} value={formData.code} onChange={(e) => setFormData((previous) => ({ ...previous, code: e.target.value.toUpperCase() }))} placeholder="CARD" /></Form.Group></Modal.Body><Modal.Footer><Button variant="secondary" type="button" onClick={handleCloseModal}>Cancel</Button><Button variant="primary" type="submit" disabled={submitLoading}>{submitLoading && <Spinner animation="border" size="sm" className="me-2" />}{editingDepartment ? "Update Department" : "Create Department"}</Button></Modal.Footer></Form></Modal>
+    </div></div>
   );
 }

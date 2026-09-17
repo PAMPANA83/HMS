@@ -1,1 +1,403 @@
+@media (max-width: 767.98px) {
+	.billing-data-table {
+		font-size: 0.875rem;
+	}
+
+	.billing-data-table .rdt_TableCell,
+	.billing-data-table .rdt_TableCol {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
+
+	.billing-data-table .rdt_Pagination {
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 4px;
+	}
+
+	.appointment-page {
+		padding: 12px !important;
+	}
+
+	.appointment-page .appointment-card .ant-card-body {
+		padding: 12px !important;
+	}
+
+	.appointment-page > .appointment-card > .ant-card-body > .ant-row:first-child {
+		gap: 12px;
+	}
+
+	.appointment-page > .appointment-card > .ant-card-body > .ant-row:first-child > .ant-col:last-child {
+		width: 100%;
+	}
+
+	.appointment-page > .appointment-card > .ant-card-body > .ant-row:first-child > .ant-col:last-child .ant-space {
+		flex-wrap: wrap;
+		width: 100%;
+	}
+
+	.appointment-data-table {
+		font-size: 0.875rem;
+	}
+
+	.appointment-data-table .rdt_TableCell,
+	.appointment-data-table .rdt_TableCol {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
+
+	.appointment-data-table .rdt_Pagination {
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 4px;
+	}
+
+	.user-page .card {
+		border-radius: 0.75rem !important;
+	}
+
+	.user-add-button {
+		width: 100%;
+	}
+
+	.user-data-table {
+		font-size: 0.875rem;
+	}
+
+	.user-data-table .rdt_TableCell,
+	.user-data-table .rdt_TableCol {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
+
+	.user-data-table .rdt_Pagination {
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 4px;
+	}
+
+	.doctor-form-page .doctor-form-card {
+		border-radius: 0.75rem !important;
+	}
+
+	.doctor-form-page .doctor-form-icon {
+		height: 2.5rem;
+		width: 2.5rem;
+	}
+
+	.doctor-page .card {
+		border-radius: 0.75rem !important;
+	}
+
+	.doctor-add-button {
+		width: 100%;
+	}
+
+	.doctor-data-table {
+		font-size: 0.875rem;
+	}
+
+	.doctor-data-table .rdt_TableCell,
+	.doctor-data-table .rdt_TableCol {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
+
+	.doctor-data-table .rdt_Pagination {
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 4px;
+	}
+
+	.country-page .card {
+		border-radius: 0.75rem !important;
+	}
+
+	.country-page-actions {
+		width: 100%;
+	}
+
+	.country-page-actions .btn {
+		flex: 1 1 100%;
+	}
+
+	.country-page .country-data-table {
+		font-size: 0.875rem;
+	}
+
+	.country-page .country-data-table .rdt_TableCell,
+	.country-page .country-data-table .rdt_TableCol {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
+
+	.country-page .country-data-table .rdt_Pagination {
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 4px;
+	}
+
+	.state-page {
+		padding: 12px !important;
+	}
+
+	.state-page > div > .ant-card .ant-card-body {
+		padding: 12px !important;
+	}
+
+	.state-page-actions {
+		width: 100%;
+		justify-content: flex-start;
+	}
+
+	.state-page-actions .ant-btn {
+		flex: 1 1 100%;
+	}
+
+	.state-data-table {
+		font-size: 0.875rem;
+	}
+
+	.state-data-table .rdt_TableCell,
+	.state-data-table .rdt_TableCol {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
+
+	.state-data-table .rdt_Pagination {
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 4px;
+	}
+
+	.city-page {
+		padding: 12px !important;
+	}
+
+	.city-page > div > .ant-card .ant-card-body {
+		padding: 12px !important;
+	}
+
+	.city-page-actions {
+		width: 100%;
+		justify-content: flex-start;
+	}
+
+	.city-page-actions .ant-btn {
+		flex: 1 1 100%;
+	}
+
+	.city-data-table {
+		font-size: 0.875rem;
+	}
+
+	.city-data-table .rdt_TableCell,
+	.city-data-table .rdt_TableCol {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
+
+	.city-data-table .rdt_Pagination {
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 4px;
+	}
+
+	.company-page {
+		padding: 12px !important;
+	}
+
+	.company-page > div > .ant-card .ant-card-body {
+		padding: 12px !important;
+	}
+
+	.company-add-button {
+		width: 100%;
+	}
+
+	.company-data-table {
+		font-size: 0.875rem;
+	}
+
+	.company-data-table .rdt_TableCell,
+	.company-data-table .rdt_TableCol {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
+
+	.company-data-table .rdt_Pagination {
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 4px;
+	}
+
+	.branch-page .card {
+		border-radius: 0.75rem !important;
+	}
+
+	.branch-add-button {
+		width: 100%;
+	}
+
+	.branch-data-table {
+		font-size: 0.875rem;
+	}
+
+	.branch-data-table .rdt_TableCell,
+	.branch-data-table .rdt_TableCol {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
+
+	.branch-data-table .rdt_Pagination {
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 4px;
+	}
+
+}
+
+.create-branch-page {
+		background: #f4f7fb;
+	}
+
+	.create-branch-hero .eyebrow {
+		color: #2563eb;
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		margin-bottom: 0.35rem;
+	}
+
+	.create-branch-card {
+		border-radius: 1.25rem;
+		box-shadow: 0 18px 45px rgba(30, 64, 175, 0.08);
+	}
+
+	.create-branch-card .form-label {
+		color: #334155;
+		font-size: 0.82rem;
+		font-weight: 600;
+		margin-bottom: 0.4rem;
+	}
+
+	.create-branch-card .form-control,
+	.create-branch-card .form-select {
+		border-color: #dbe3ef;
+		border-radius: 0.7rem;
+		min-height: 2.75rem;
+	}
+
+	.create-branch-card .form-control:focus,
+	.create-branch-card .form-select:focus {
+		border-color: #60a5fa;
+		box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.12);
+	}
+
+	.form-section-heading {
+		align-items: center;
+		display: flex;
+		gap: 0.75rem;
+	}
+
+	.form-section-heading strong,
+	.form-section-heading small {
+		display: block;
+	}
+
+	.form-section-heading strong {
+		color: #1e293b;
+	}
+
+	.form-section-heading small {
+		color: #64748b;
+		font-size: 0.78rem;
+		margin-top: 0.15rem;
+	}
+
+	.section-icon {
+		align-items: center;
+		background: #dbeafe;
+		border-radius: 0.7rem;
+		color: #2563eb;
+		display: inline-flex;
+		height: 2.4rem;
+		justify-content: center;
+		width: 2.4rem;
+	}
+
+	.setting-tile {
+		background: #f8fafc;
+		border: 1px solid #e2e8f0;
+		border-radius: 0.8rem;
+		padding: 0.8rem 1rem;
+	}
+
+	.doctor-form-icon {
+		align-items: center;
+		background: #dbeafe;
+		border-radius: 0.75rem;
+		color: #2563eb;
+		display: inline-flex;
+		height: 2.75rem;
+		justify-content: center;
+		width: 2.75rem;
+	}
+
+	.user-avatar,
+	.user-profile-avatar {
+		align-items: center;
+		background: #dbeafe;
+		border-radius: 50%;
+		color: #2563eb;
+		display: inline-flex;
+		font-weight: 700;
+		justify-content: center;
+		overflow: hidden;
+	}
+
+	.user-avatar {
+		height: 2rem;
+		width: 2rem;
+	}
+
+	.user-profile-avatar {
+		font-size: 1.5rem;
+		height: 4rem;
+		width: 4rem;
+	}
+
+	.user-avatar img,
+	.user-profile-avatar img {
+		height: 100%;
+		object-fit: cover;
+		width: 100%;
+	}
+
+	@media (max-width: 767.98px) {
+		.department-page .card {
+			border-radius: 0.75rem !important;
+		}
+
+		.department-add-button {
+			width: 100%;
+		}
+
+		.department-data-table {
+			font-size: 0.875rem;
+		}
+
+		.department-data-table .rdt_TableCell,
+		.department-data-table .rdt_TableCol {
+			padding-left: 8px;
+			padding-right: 8px;
+		}
+
+		.department-data-table .rdt_Pagination {
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 4px;
+		}
+	}
 /* You can add global styles to this file, and also import other style files */

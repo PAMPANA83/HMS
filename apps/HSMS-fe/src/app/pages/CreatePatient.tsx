@@ -1,20 +1,22 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Form,
   Input,
   DatePicker,
   Select,
   Switch,
-  Button,
-  Card,
-  Row,
-  Col,
   Typography,
   Breadcrumb,
-  Space,
   message,
   ConfigProvider,
 } from "antd";
+import {
+  Button as BootstrapButton,
+  Card as BootstrapCard,
+  Col as BootstrapCol,
+  Container,
+  Row as BootstrapRow,
+} from "react-bootstrap";
 import {
   UserOutlined,
   PhoneOutlined,
@@ -98,7 +100,7 @@ export function CreatePatient() {
         },
       }}
     >
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "16px" }}>
+      <Container className="create-patient-page py-3 py-md-4">
         {/* Navigation Breadcrumb */}
         <Breadcrumb
           style={{ marginBottom: 16 }}
@@ -109,15 +111,8 @@ export function CreatePatient() {
         />
 
         {/* Form Container Card */}
-        <Card
-          bordered={false}
-          style={{
-            borderRadius: 12,
-            boxShadow:
-              "0 1px 3px rgba(16, 24, 40, 0.05), 0 1px 2px rgba(16, 24, 40, 0.06)",
-          }}
-          bodyStyle={{ padding: "24px 32px" }}
-        >
+        <BootstrapCard className="border-0 shadow-sm rounded-3">
+          <BootstrapCard.Body className="p-3 p-md-4">
           {/* Header Bar */}
           <div
             style={{
@@ -137,12 +132,13 @@ export function CreatePatient() {
                 Fill in the details below to register a new patient and book an appointment
               </Text>
             </div>
-            <Button
-              icon={<ArrowLeftOutlined />}
+            <BootstrapButton
+              variant="outline-secondary"
               onClick={() => navigate("/patient")}
             >
+              <ArrowLeftOutlined className="me-2" />
               Back to List
-            </Button>
+            </BootstrapButton>
           </div>
 
           {/* Form Controls */}
@@ -158,8 +154,8 @@ export function CreatePatient() {
               Personal Information
             </Title>
 
-            <Row gutter={16}>
-              <Col span={12}>
+            <BootstrapRow className="g-3">
+              <BootstrapCol xs={12} md={6}>
                 <Form.Item
                   name="firstName"
                   label="First Name"
@@ -173,9 +169,9 @@ export function CreatePatient() {
                     placeholder="e.g. Rahul"
                   />
                 </Form.Item>
-              </Col>
+              </BootstrapCol>
 
-              <Col span={12}>
+              <BootstrapCol xs={12} md={6}>
                 <Form.Item
                   name="lastName"
                   label="Last Name"
@@ -186,11 +182,11 @@ export function CreatePatient() {
                 >
                   <Input placeholder="e.g. Sharma" />
                 </Form.Item>
-              </Col>
-            </Row>
+              </BootstrapCol>
+            </BootstrapRow>
 
-            <Row gutter={16}>
-              <Col span={12}>
+            <BootstrapRow className="g-3">
+              <BootstrapCol xs={12} md={6}>
                 <Form.Item
                   name="dateOfBirth"
                   label="Date of Birth"
@@ -205,9 +201,9 @@ export function CreatePatient() {
                     }
                   />
                 </Form.Item>
-              </Col>
+              </BootstrapCol>
 
-              <Col span={12}>
+              <BootstrapCol xs={12} md={6}>
                 <Form.Item
                   name="gender"
                   label="Gender"
@@ -219,11 +215,11 @@ export function CreatePatient() {
                     <Option value="Other">Other</Option>
                   </Select>
                 </Form.Item>
-              </Col>
-            </Row>
+              </BootstrapCol>
+            </BootstrapRow>
 
-            <Row gutter={16}>
-              <Col span={12}>
+            <BootstrapRow className="g-3">
+              <BootstrapCol xs={12} md={6}>
                 <Form.Item
                   name="phoneNumber"
                   label="Phone Number"
@@ -241,9 +237,9 @@ export function CreatePatient() {
                     placeholder="e.g. +91 9876543210"
                   />
                 </Form.Item>
-              </Col>
+              </BootstrapCol>
 
-              <Col span={12}>
+              <BootstrapCol xs={12} md={6}>
                 <Form.Item
                   name="email"
                   label="Email Address"
@@ -257,8 +253,8 @@ export function CreatePatient() {
                     placeholder="e.g. rahul.sharma@example.com"
                   />
                 </Form.Item>
-              </Col>
-            </Row>
+              </BootstrapCol>
+            </BootstrapRow>
 
             {/* Appointment & Medical Info Section */}
             <Title
@@ -268,8 +264,8 @@ export function CreatePatient() {
               Appointment & Consultation Details
             </Title>
 
-            <Row gutter={16}>
-              <Col span={12}>
+            <BootstrapRow className="g-3">
+              <BootstrapCol xs={12} md={6}>
                 <Form.Item
                   name="doctorId"
                   label="Assigned Doctor"
@@ -288,9 +284,9 @@ export function CreatePatient() {
                     ))}
                   </Select>
                 </Form.Item>
-              </Col>
+              </BootstrapCol>
 
-              <Col span={12}>
+              <BootstrapCol xs={12} md={6}>
                 <Form.Item
                   name="appointmentDateTime"
                   label="Appointment Date & Time"
@@ -306,8 +302,8 @@ export function CreatePatient() {
                     }
                     />
                 </Form.Item>
-              </Col>
-            </Row>
+              </BootstrapCol>
+            </BootstrapRow>
 
             <Form.Item
               name="reasonForVisit"
@@ -331,22 +327,19 @@ export function CreatePatient() {
             </Form.Item>
 
             {/* Submit Action Buttons */}
-            <div style={{ textAlign: "right", marginTop: 24 }}>
-              <Space>
-                <Button onClick={() => navigate("/patient")}>Cancel</Button>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  icon={<SaveOutlined />}
-                  loading={submitting}
-                >
-                  Save Patient Record
-                </Button>
-              </Space>
+            <div className="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-4">
+              <BootstrapButton variant="outline-secondary" onClick={() => navigate("/patient")}>
+                Cancel
+              </BootstrapButton>
+              <BootstrapButton variant="primary" type="submit" disabled={submitting}>
+                <SaveOutlined className="me-2" />
+                {submitting ? "Saving..." : "Save Patient Record"}
+              </BootstrapButton>
             </div>
           </Form>
-        </Card>
-      </div>
+          </BootstrapCard.Body>
+        </BootstrapCard>
+      </Container>
     </ConfigProvider>
   );
 }

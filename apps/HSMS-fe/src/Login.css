@@ -1,6 +1,6 @@
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: "Segoe UI", sans-serif;
 }
 
 .login-container {
@@ -8,45 +8,71 @@ body {
   justify-content: center;
   align-items: center;
   height: 100vh;
+  min-height: 100dvh;
+  padding: 1rem 0;
   background-image: url("./assets/madlab_1a.jpg");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  position: relative;
+}
+
+.login-container::before {
+  background: linear-gradient(135deg, rgba(9, 30, 66, 0.72), rgba(14, 116, 144, 0.3));
+  content: "";
+  inset: 0;
+  position: absolute;
 }
 
 .login-box {
-  background: white;
-  padding: 30px;
-  border-radius: 10px;
-  width: 350px;
-  box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 18px !important;
+  width: min(100%, 350px);
+  box-shadow: 0 24px 60px rgba(3, 27, 54, 0.28);
+  position: relative;
 }
 
 .login-box h2 {
+  color: #12304a;
+  font-size: 1.8rem;
+  font-weight: 700;
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 1.75rem;
 }
 
-.login-box input {
-  width: 95%;
-  padding: 12px;
-  margin: 10px 0;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+.login-form-label {
+  color: #365269;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.45rem;
 }
 
-.login-box button {
-  width: 100%;
-  padding: 12px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+.login-input {
+  background-color: #f8fbfd !important;
+  border: 1px solid #d6e2ea !important;
+  border-radius: 10px !important;
+  min-height: 46px;
+  padding: 0.7rem 0.85rem !important;
 }
 
-.login-box button:hover {
-  background: #0056b3;
+.login-input:focus {
+  background-color: #fff !important;
+  border-color: #1593a5 !important;
+  box-shadow: 0 0 0 0.2rem rgba(21, 147, 165, 0.16) !important;
+}
+
+.login-submit {
+  background: #087f8c !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  min-height: 44px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.login-submit:hover,
+.login-submit:focus {
+  background: #066673 !important;
 }
 
 .login-header {
@@ -57,4 +83,10 @@ body {
   width: 100px;
   height: auto;
   margin-bottom: 10px;
+}
+
+@media (max-width: 575.98px) {
+  .login-box {
+    padding: 20px;
+  }
 }

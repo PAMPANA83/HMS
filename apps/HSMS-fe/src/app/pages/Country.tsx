@@ -1,65 +1,50 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
+import DataTable, { type TableColumn } from "react-data-table-component";
 import {
   Card,
   Button,
   Modal,
   Form,
-  Input,
-  message,
-  Typography,
-  Space,
-  Select,
   Row,
   Col,
-  Tooltip,
-  Table,
-  Tag,
-} from "antd";
-import type { ColumnsType } from "antd/es/table";
-
+  Badge,
+  Spinner,
+} from "react-bootstrap";
 import {
-  getCountries,
-  createCountry,
-  updateCountry,
-  deleteCountry,
-} from "../services/country.service";
+  FaGlobe,
+  FaSearch,
+  FaPlus,
+  FaTrash,
+  FaEdit,
+  FaFilter,
+  FaSync,
+} from "react-icons/fa";
+import { getCountries, createCountry, updateCountry, deleteCountry } from "../services/country.service";
+import { CountryMastersDto, CountryDto } from "../models/country.dto";
 
-import {
-  CountryMastersDto,
-  CountryDto,
-} from "../models/country.dto";
+interface CountryFormState {
+  countryName: string;
+  isoCode: string;
+  phoneCode: string;
+}
 
-import {
-  DeleteOutlined,
-  EditOutlined,
-  SearchOutlined,
-  PlusOutlined,
-  GlobalOutlined,
-  FilterOutlined,
-  ReloadOutlined,
-  ExclamationCircleOutlined,
-} from "@ant-design/icons";
-
-const { Title, Text } = Typography;
+const emptyForm: CountryFormState = {
+  countryName: "",
+  isoCode: "",
+  phoneCode: "",
+};
 
 export function Country() {
   const [data, setData] = useState<CountryMastersDto[]>([]);
-  const [form] = Form.useForm();
-
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<CountryMastersDto | null>(null);
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  // Search & Filters
   const [searchText, setSearchText] = useState("");
   const [selectedIsoFilter, setSelectedIsoFilter] = useState<string | undefined>(undefined);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
+  const [formData, setFormData] = useState<CountryFormState>(emptyForm);
+  const [loading, setLoading] = useState(false);
 
-  // Table selection
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-
-  // Load Countries
   const loadCountries = useCallback(async () => {
     try {
       setLoading(true);
@@ -68,8 +53,8 @@ export function Country() {
       setData(countries);
     } catch (error) {
       console.error("Load countries failed:", error);
-      message.error("Failed to load countries");
       setData([]);
+      alert("Failed to load countries");
     } finally {
       setLoading(false);
     }
@@ -79,53 +64,52 @@ export function Country() {
     loadCountries();
   }, [loadCountries]);
 
-  // Unique ISO Code options for filter dropdown
   const isoOptions = useMemo(() => {
-    return Array.from(
-      new Set(data.map((item) => item.isoCode).filter(Boolean))
-    ).map((code) => ({
-      value: code,
-      label: code,
-    }));
+    return Array.from(new Set(data.map((item) => item.isoCode).filter(Boolean)))
+      .sort()
+      .map((code) => ({ value: code, label: code }));
   }, [data]);
 
-  // Open Create Modal
   const handleOpenCreateModal = () => {
     setEditingRecord(null);
-    form.resetFields();
+    setFormData(emptyForm);
     setIsModalOpen(true);
   };
 
-  // Open Edit Modal
   const handleOpenEditModal = useCallback((record: CountryMastersDto) => {
     setEditingRecord(record);
-    form.setFieldsValue({
-      countryName: record.name,
-      isoCode: record.isoCode,
-      phoneCode: record.phoneCode,
+    setFormData({
+      countryName: record.name || "",
+      isoCode: record.isoCode || "",
+      phoneCode: record.phoneCode || "",
     });
     setIsModalOpen(true);
-  }, [form]);
+  }, []);
 
-  // Handle Close Modal
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingRecord(null);
-    form.resetFields();
+    setFormData(emptyForm);
   };
 
-  // Create or Update Form Handler
-  const handleFormSubmit = async (values: {
-    countryName: string;
-    isoCode: string;
-    phoneCode: string;
-  }) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedName = formData.countryName.trim();
+    const trimmedIso = formData.isoCode.trim();
+    const trimmedPhone = formData.phoneCode.trim();
+
+    if (!trimmedName || !trimmedIso || !trimmedPhone) {
+      alert("Please complete all fields.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       const countryData: CountryDto = {
-        name: values.countryName.trim(),
-        isoCode: values.isoCode.trim().toUpperCase(),
-        phoneCode: values.phoneCode.trim(),
+        name: trimmedName,
+        isoCode: trimmedIso.toUpperCase(),
+        phoneCode: trimmedPhone,
       };
 
       let result;
@@ -140,79 +124,61 @@ export function Country() {
       }
 
       if (result.success) {
-        message.success(
-          editingRecord
-            ? "Country updated successfully"
-            : "Country created successfully"
-        );
+        alert(editingRecord ? "Country updated successfully" : "Country created successfully");
         handleCloseModal();
         await loadCountries();
       } else {
-        message.error(result.message || "Operation failed");
+        alert(result.message || "Operation failed");
       }
-    } catch (error: any) {
-      message.error(error.message || "An unexpected error occurred");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An unexpected error occurred";
+      alert(message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Delete Single Country Confirm Box
-  const handleDelete = useCallback((id: number) => {
-    Modal.confirm({
-      title: "Delete Country?",
-      content: "Are you sure you want to delete this country? This action cannot be undone.",
-      okText: "Delete",
-      okType: "danger",
-      cancelText: "Cancel",
-      onOk: async () => {
-        try {
-          const res = await deleteCountry(id);
-          if (res.success) {
-            message.success(res.message || "Country deleted successfully");
-            setSelectedRowKeys((prev) => prev.filter((key) => key !== id));
-            await loadCountries();
-          } else {
-            message.error(res.message || "Delete failed");
-          }
-        } catch (error) {
-          message.error("Delete failed");
-        }
-      },
-    });
-  }, [loadCountries]);
+  const handleDelete = useCallback(
+    async (id: number) => {
+      if (!window.confirm("Are you sure you want to delete this country? This action cannot be undone.")) {
+        return;
+      }
 
-  // Multi / Bulk Delete Handler
-  const handleBulkDelete = () => {
-    if (selectedRowKeys.length === 0) return;
-
-    Modal.confirm({
-      title: `Delete ${selectedRowKeys.length} selected country(ies)?`,
-      icon: <ExclamationCircleOutlined style={{ color: "#ef4444" }} />,
-      content: "Are you sure you want to delete all selected countries? This action cannot be undone.",
-      okText: "Delete All",
-      okType: "danger",
-      cancelText: "Cancel",
-      onOk: async () => {
-        try {
-          setLoading(true);
-          await Promise.all(
-            selectedRowKeys.map((id) => deleteCountry(Number(id)))
-          );
-          message.success("Selected countries deleted successfully");
-          setSelectedRowKeys([]);
+      try {
+        const res = await deleteCountry(id);
+        if (res.success) {
+          setSelectedRowKeys((prev) => prev.filter((key) => key !== id));
           await loadCountries();
-        } catch (error) {
-          console.error("Bulk delete failed:", error);
-          message.error("Failed to delete selected items");
-        } finally {
-          setLoading(false);
+          alert(res.message || "Country deleted successfully");
+        } else {
+          alert(res.message || "Delete failed");
         }
-      },
-    });
+      } catch (error) {
+        console.error("Delete failed:", error);
+        alert("Delete failed");
+      }
+    },
+    [loadCountries]
+  );
+
+  const handleBulkDelete = async () => {
+    if (selectedRowKeys.length === 0) return;
+    if (!window.confirm(`Delete ${selectedRowKeys.length} selected country(ies)?`)) return;
+
+    try {
+      setLoading(true);
+      await Promise.all(selectedRowKeys.map((id) => deleteCountry(Number(id))));
+      setSelectedRowKeys([]);
+      await loadCountries();
+      alert("Selected countries deleted successfully");
+    } catch (error) {
+      console.error("Bulk delete failed:", error);
+      alert("Failed to delete selected items");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Filtered Dataset
   const filteredData = useMemo(() => {
     const search = searchText.toLowerCase().trim();
 
@@ -222,372 +188,254 @@ export function Country() {
         !search ||
         [item.name, item.isoCode, item.phoneCode]
           .filter(Boolean)
-          .some((value) =>
-            String(value).toLowerCase().includes(search)
-          );
+          .some((value) => String(value).toLowerCase().includes(search));
 
       return matchesIso && matchesSearch;
     });
   }, [data, searchText, selectedIsoFilter]);
 
-  // Table Columns Definition
-  const columns: ColumnsType<CountryMastersDto> = [
-    {
-      title: "Name",
-      dataIndex: "name",
-      key: "name",
-      sorter: (a, b) => (a.name || "").localeCompare(b.name || ""),
-      render: (text) => (
-        <Space size={8}>
-          <GlobalOutlined style={{ color: "#3b82f6" }} />
-          <Text strong style={{ color: "#1e293b" }}>
-            {text || "-"}
-          </Text>
-        </Space>
-      ),
-    },
-    {
-      title: "ISO Code",
-      dataIndex: "isoCode",
-      key: "isoCode",
-      align: "center",
-      sorter: (a, b) => (a.isoCode || "").localeCompare(b.isoCode || ""),
-      render: (text) =>
-        text ? (
-          <Tag color="blue" style={{ borderRadius: "6px", fontFamily: "monospace", fontWeight: 600 }}>
-            {text}
-          </Tag>
-        ) : (
-          "-"
+  const columns = useMemo<TableColumn<CountryMastersDto>[]>(
+    () => [
+      {
+        name: "Name",
+        selector: (row) => row.name || "-",
+        sortable: true,
+        grow: 2,
+        wrap: true,
+        cell: (row) => (
+          <div className="d-flex align-items-center gap-2">
+            <FaGlobe className="text-primary" />
+            <span className="fw-semibold text-dark">{row.name || "-"}</span>
+          </div>
         ),
-    },
-    {
-      title: "Phone Code",
-      dataIndex: "phoneCode",
-      key: "phoneCode",
-      render: (text) => (
-        <span style={{ fontFamily: "monospace", color: "#334155", fontWeight: 500 }}>
-          {text || "-"}
-        </span>
-      ),
-    },
-    {
-      title: "Created",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      sorter: (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime(),
-      render: (text) =>
-        text
-          ? new Date(text).toLocaleDateString("en-IN", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })
-          : "-",
-    },
-    {
-      title: "Edited",
-      dataIndex: "updatedAt",
-      key: "updatedAt",
-      sorter: (a, b) => new Date(a.updatedAt || 0).getTime() - new Date(b.updatedAt || 0).getTime(),
-      render: (text) =>
-        text
-          ? new Date(text).toLocaleDateString("en-IN", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })
-          : "-",
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      align: "center",
-      render: (_, record) => (
-        <Space size={4}>
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<EditOutlined style={{ color: "#2563eb" }} />}
-              size="small"
-              onClick={() => handleOpenEditModal(record)}
-              style={{ background: "#eff6ff", borderRadius: "6px", width: 30, height: 30 }}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              size="small"
-              onClick={() => handleDelete(record.id)}
-              style={{ background: "#fef2f2", borderRadius: "6px", width: 30, height: 30 }}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
-
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (newSelectedRowKeys: React.Key[]) => {
-      setSelectedRowKeys(newSelectedRowKeys);
-    },
-  };
+      },
+      {
+        name: "ISO Code",
+        selector: (row) => row.isoCode || "-",
+        sortable: true,
+        center: true,
+        width: "110px",
+        cell: (row) => (row.isoCode ? <Badge bg="primary">{row.isoCode}</Badge> : "-"),
+      },
+      {
+        name: "Phone Code",
+        selector: (row) => row.phoneCode || "-",
+        sortable: true,
+        width: "130px",
+        cell: (row) => row.phoneCode || "-",
+      },
+      {
+        name: "Created",
+        selector: (row) => row.createdAt || "",
+        sortable: true,
+        hide: 768,
+        width: "145px",
+        sortFunction: (first, second) =>
+          new Date(first.createdAt || 0).getTime() - new Date(second.createdAt || 0).getTime(),
+        cell: (row) =>
+          row.createdAt
+            ? new Date(row.createdAt).toLocaleDateString("en-IN", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })
+            : "-",
+      },
+      {
+        name: "Edited",
+        selector: (row) => row.updatedAt || "",
+        sortable: true,
+        hide: 768,
+        width: "145px",
+        sortFunction: (first, second) =>
+          new Date(first.updatedAt || 0).getTime() - new Date(second.updatedAt || 0).getTime(),
+        cell: (row) =>
+          row.updatedAt
+            ? new Date(row.updatedAt).toLocaleDateString("en-IN", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })
+            : "-",
+      },
+      {
+        name: "Actions",
+        center: true,
+        width: "170px",
+        cell: (row) => (
+          <div className="d-flex justify-content-center gap-2">
+            <Button variant="outline-primary" size="sm" onClick={() => handleOpenEditModal(row)} className="d-flex align-items-center gap-1">
+              <FaEdit />
+              Edit
+            </Button>
+            <Button variant="outline-danger" size="sm" onClick={() => handleDelete(row.id)} className="d-flex align-items-center gap-1">
+              <FaTrash />
+              Delete
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [handleDelete, handleOpenEditModal]
+  );
 
   return (
-    <div style={{ padding: "28px", background: "#f8fafc", minHeight: "100vh" }}>
-      <style>{`
-        /* Fix page-size / pagination dropdown clipping inside cards */
-        .ant-card {
-          overflow: visible !important;
-        }
-        .ant-select-dropdown {
-          z-index: 1050 !important;
-        }
-        .custom-table .ant-table-wrapper {
-          overflow: visible !important;
-        }
-        .custom-table .ant-table-container {
-          border: 1px solid #e2e8f0;
-          border-radius: 12px;
-          overflow: hidden;
-        }
-        .custom-table .ant-table-thead > tr > th {
-          background-color: #f8fafc !important;
-          color: #475569 !important;
-          font-weight: 600 !important;
-          font-size: 13px !important;
-          border-bottom: 1px solid #e2e8f0 !important;
-          padding: 14px 16px !important;
-        }
-        .custom-table .ant-table-tbody > tr > td {
-          padding: 14px 16px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
-          font-size: 14px !important;
-        }
-        .custom-table .ant-table-tbody > tr:hover > td {
-          background-color: #f8fafc !important;
-        }
-      `}</style>
-
+    <div className="country-page p-2 p-md-4 bg-light min-vh-100">
       <div style={{ maxWidth: 1500, margin: "0 auto" }}>
-        {/* Header Section */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <div>
-            <Title level={3} style={{ margin: 0, fontWeight: 700, color: "#0f172a" }}>
-              Country Master
-            </Title>
-            <Text type="secondary" style={{ fontSize: "14px" }}>
+        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+          <div className="flex-grow-1">
+            <h3 className="mb-1 fw-bold text-dark fs-4 fs-md-3">Country Master</h3>
+            <small className="text-muted d-block">
               Configure and manage global countries, ISO records, and calling codes.
-            </Text>
+            </small>
           </div>
 
-          <Space>
-            {/* Multi-Delete Action Trigger */}
+          <div className="country-page-actions d-flex justify-content-end gap-2 flex-wrap ms-md-auto">
             {selectedRowKeys.length > 0 && (
-              <Button
-                type="primary"
-                danger
-                icon={<DeleteOutlined />}
-                size="large"
-                style={{ borderRadius: "10px", height: "42px", fontWeight: 500 }}
-                onClick={handleBulkDelete}
-              >
+              <Button variant="danger" onClick={handleBulkDelete} className="d-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-md-grow-0">
+                <FaTrash />
                 Delete Selected ({selectedRowKeys.length})
               </Button>
             )}
-
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              size="large"
-              style={{
-                borderRadius: "10px",
-                paddingLeft: 22,
-                paddingRight: 22,
-                height: "42px",
-                fontWeight: 500,
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-              }}
-              onClick={handleOpenCreateModal}
-            >
+            <Button variant="primary" onClick={handleOpenCreateModal} className="d-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-md-grow-0">
+              <FaPlus />
               Add New
             </Button>
-          </Space>
+          </div>
         </div>
 
-        <Card
-          bordered={false}
-          style={{
-            borderRadius: "16px",
-            boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02)",
-          }}
-          bodyStyle={{ padding: "24px" }}
-        >
-          {/* Filter Bar */}
-          <div
-            style={{
-              background: "#f8fafc",
-              padding: "18px 20px",
-              borderRadius: "12px",
-              border: "1px solid #e2e8f0",
-              marginBottom: "20px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <FilterOutlined style={{ color: "#3b82f6" }} />
-              <Text strong style={{ color: "#334155", fontSize: "14px" }}>
-                Filter & Search Parameters
-              </Text>
-            </div>
+        <Card className="shadow-sm border-0 rounded-4">
+          <Card.Body className="p-2 p-sm-3 p-md-4">
+            <div className="bg-light rounded-3 border p-3 mb-3">
+              <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                <FaFilter className="text-primary" />
+                <strong className="text-dark">Filter & Search Parameters</strong>
+              </div>
 
-            <Row gutter={[12, 12]} align="middle">
-              <Col xs={24} sm={16} md={12}>
-                <Input
-                  allowClear
-                  size="large"
-                  prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
-                  placeholder="Search country, ISO code, phone code..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ borderRadius: "8px", background: "#fff" }}
-                />
-              </Col>
+              <Row className="g-3 align-items-center">
+                <Col xs={12} md={6} lg={7}>
+                  <div className="position-relative">
+                    <FaSearch className="position-absolute top-50 translate-middle-y ms-3 text-secondary" />
+                    <Form.Control
+                      type="text"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      placeholder="Search country, ISO code, phone code..."
+                      className="ps-5 rounded-3"
+                    />
+                  </div>
+                </Col>
 
-              <Col xs={24} sm={8} md={8}>
-                <Select
-                  style={{ width: "100%" }}
-                  size="large"
-                  placeholder="Filter by ISO Code"
-                  allowClear
-                  showSearch
-                  optionFilterProp="label"
-                  value={selectedIsoFilter}
-                  onChange={(value) => setSelectedIsoFilter(value)}
-                  options={isoOptions}
-                />
-              </Col>
+                <Col xs={12} md={4} lg={3}>
+                  <Form.Select
+                    value={selectedIsoFilter ?? ""}
+                    onChange={(e) => setSelectedIsoFilter(e.target.value || undefined)}
+                    className="rounded-3"
+                  >
+                    <option value="">Filter by ISO Code</option>
+                    {isoOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </Form.Select>
+                </Col>
 
-              <Col xs={24} sm={24} md={4}>
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={() => {
+                <Col xs={12} md={2} lg={2}>
+                  <Button variant="outline-secondary" className="w-100 rounded-3 d-flex align-items-center justify-content-center gap-2" onClick={() => {
                     setSearchText("");
                     setSelectedIsoFilter(undefined);
-                  }}
-                  size="large"
-                  style={{
-                    width: "100%",
-                    borderRadius: "8px",
-                    background: "#fff",
-                    color: "#64748b",
-                    fontWeight: 500,
-                  }}
-                >
-                  Reset
-                </Button>
-              </Col>
-            </Row>
-          </div>
+                  }}>
+                    <FaSync />
+                    Reset
+                  </Button>
+                </Col>
+              </Row>
+            </div>
 
-          {/* Selection Status Bar */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, paddingInline: 4 }}>
-            <Text type="secondary" style={{ fontSize: "13px" }}>
-              Showing <Text strong>{filteredData.length}</Text> countries
-            </Text>
-            {selectedRowKeys.length > 0 && (
-              <Text style={{ fontSize: "13px", color: "#2563eb", fontWeight: 500 }}>
-                {selectedRowKeys.length} country(ies) selected
-              </Text>
+            <div className="d-flex justify-content-between align-items-center mb-3 px-1 flex-wrap gap-2">
+              <small className="text-muted">Showing {filteredData.length} countries</small>
+              {selectedRowKeys.length > 0 && (
+                <small className="text-primary fw-semibold">{selectedRowKeys.length} country(ies) selected</small>
+              )}
+            </div>
+
+            {loading ? (
+              <div className="d-flex justify-content-center align-items-center py-5">
+                <Spinner animation="border" variant="primary" role="status" />
+              </div>
+            ) : (
+              <DataTable
+                columns={columns}
+                data={filteredData}
+                keyField="id"
+                selectableRows
+                selectableRowsHighlight
+                onSelectedRowsChange={({ selectedRows }) => setSelectedRowKeys(selectedRows.map((row) => row.id))}
+                clearSelectedRows={selectedRowKeys.length === 0}
+                pagination
+                paginationPerPage={10}
+                paginationRowsPerPageOptions={[10, 20, 50, 100]}
+                progressPending={loading}
+                persistTableHead
+                highlightOnHover
+                className="country-data-table"
+                responsive
+                noDataComponent={<div className="py-4 text-muted">No countries found</div>}
+                customStyles={{
+                  headCells: { style: { fontWeight: 600, color: "#212529", backgroundColor: "#f8f9fa" } },
+                  rows: { style: { minHeight: "58px" } },
+                  cells: { style: { paddingLeft: "12px", paddingRight: "12px" } },
+                }}
+              />
             )}
-          </div>
-
-          {/* Table */}
-          <Table
-            className="custom-table"
-            columns={columns}
-            dataSource={filteredData}
-            rowKey="id"
-            loading={loading}
-            rowSelection={rowSelection}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            }}
-            scroll={{ x: "max-content" }}
-          />
+          </Card.Body>
         </Card>
 
-        {/* Dynamic Modal for Create / Edit */}
-        <Modal
-          title={
-            <div style={{ fontSize: "18px", fontWeight: 600, color: "#0f172a", paddingBottom: 4 }}>
-              {editingRecord ? "Edit Country" : "Create Country"}
-            </div>
-          }
-          open={isModalOpen}
-          footer={null}
-          width={480}
-          centered
-          styles={{ body: { paddingTop: 8 } }}
-          onCancel={handleCloseModal}
-        >
-          <Form form={form} layout="vertical" onFinish={handleFormSubmit}>
-            <Form.Item
-              label={<Text strong style={{ color: "#334155" }}>Country Name</Text>}
-              name="countryName"
-              rules={[{ required: true, message: "Enter country name" }]}
-            >
-              <Input size="large" placeholder="e.g. India" style={{ borderRadius: "8px" }} />
-            </Form.Item>
+        <Modal show={isModalOpen} onHide={handleCloseModal} centered size="lg">
+          <Modal.Header closeButton>
+            <Modal.Title>{editingRecord ? "Edit Country" : "Create Country"}</Modal.Title>
+          </Modal.Header>
+          <Form onSubmit={handleSubmit}>
+            <Modal.Body>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold">Country Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={formData.countryName}
+                  onChange={(e) => setFormData({ ...formData, countryName: e.target.value })}
+                  placeholder="e.g. India"
+                />
+              </Form.Group>
 
-            <Form.Item
-              label={<Text strong style={{ color: "#334155" }}>ISO Code</Text>}
-              name="isoCode"
-              rules={[
-                { required: true, message: "Enter ISO code" },
-                { min: 2, max: 3, message: "ISO code must be 2 or 3 characters" },
-              ]}
-            >
-              <Input
-                size="large"
-                placeholder="e.g. IND"
-                maxLength={3}
-                style={{ borderRadius: "8px", textTransform: "uppercase", fontFamily: "monospace" }}
-              />
-            </Form.Item>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold">ISO Code</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={formData.isoCode}
+                  maxLength={3}
+                  onChange={(e) => setFormData({ ...formData, isoCode: e.target.value })}
+                  placeholder="e.g. IND"
+                  style={{ textTransform: "uppercase" }}
+                />
+              </Form.Group>
 
-            <Form.Item
-              label={<Text strong style={{ color: "#334155" }}>Phone Code</Text>}
-              name="phoneCode"
-              rules={[{ required: true, message: "Enter phone code" }]}
-            >
-              <Input size="large" placeholder="e.g. +91" style={{ borderRadius: "8px", fontFamily: "monospace" }} />
-            </Form.Item>
-
-            <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-              <Button
-                type="primary"
-                htmlType="submit"
-                size="large"
-                loading={submitting}
-                style={{ flex: 1, borderRadius: "8px", fontWeight: 500, height: "42px" }}
-              >
-                {editingRecord ? "Update" : "Create"}
-              </Button>
-
-              <Button
-                size="large"
-                onClick={handleCloseModal}
-                style={{ flex: 1, borderRadius: "8px", fontWeight: 500, height: "42px" }}
-              >
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold">Phone Code</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={formData.phoneCode}
+                  onChange={(e) => setFormData({ ...formData, phoneCode: e.target.value })}
+                  placeholder="e.g. +91"
+                />
+              </Form.Group>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={handleCloseModal}>
                 Cancel
               </Button>
-            </div>
+              <Button type="submit" variant="primary" disabled={submitting}>
+                {submitting ? "Saving..." : editingRecord ? "Update" : "Create"}
+              </Button>
+            </Modal.Footer>
           </Form>
         </Modal>
       </div>

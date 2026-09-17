@@ -1,372 +1,119 @@
 import { useEffect, useState, useCallback } from "react";
+import { Button, Card, Col, Form, Row, Spinner } from "react-bootstrap";
 import {
-  Form,
-  Input,
-  InputNumber,
-  Select,
-  Switch,
-  Row,
-  Col,
-  Button,
-  message,
-  Divider,
-  Typography,
-  Card,
-  Space,
-  Spin,
-} from "antd";
-
-import {
-  MedicineBoxOutlined,
-  DollarOutlined,
-  BankOutlined,
   AppstoreOutlined,
   ArrowLeftOutlined,
+  BankOutlined,
+  MedicineBoxOutlined,
   SaveOutlined,
-  UserOutlined,
   SafetyCertificateOutlined,
 } from "@ant-design/icons";
-
 import { useParams, useNavigate } from "react-router-dom";
-
 import { UpdateDoctorDto, DoctorDto } from "../models/Doctor.dto";
 import { updateDoctor, GetDoctobyID } from "../services/Doctor.service";
 import { getBranch } from "../services/Branch.service";
 import { getDepartment } from "../services/Department.service";
 
-const { Text, Title } = Typography;
+interface BranchOption { id: number; branchName: string; }
+interface DepartmentOption { id: number; name: string; }
+interface DoctorEditFormProps { currentUserId?: number; onCancel?: () => void; onSuccess?: () => void; }
+interface EditFormState { doctorName: string; userId: number; specialization: string; licenseNumber: string; consultationFee?: number; branchId: number; departmentId?: number; isActive: boolean; }
 
-interface BranchOption {
-  id: number;
-  branchName: string;
-}
+const emptyForm: EditFormState = { doctorName: "", userId: 0, specialization: "", licenseNumber: "", consultationFee: undefined, branchId: 0, departmentId: undefined, isActive: true };
+const notify = (text: string) => window.alert(text);
 
-interface DepartmentOption {
-  id: number;
-  name: string;
-}
-
-interface DoctorEditFormProps {
-  currentUserId?: number;
-  onCancel?: () => void;
-  onSuccess?: () => void;
-}
-
-export function DoctorEditForm({
-  currentUserId,
-  onCancel,
-  onSuccess,
-}: DoctorEditFormProps) {
-  const [form] = Form.useForm();
+export function DoctorEditForm({ currentUserId, onCancel, onSuccess }: DoctorEditFormProps) {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-
-  const doctorId = id ? parseInt(id, 10) : currentUserId;
-
-  const [loading, setLoading] = useState<boolean>(true);
-  const [submitting, setSubmitting] = useState<boolean>(false);
-
+  const doctorId = id ? Number.parseInt(id, 10) : currentUserId;
+  const [formData, setFormData] = useState<EditFormState>(emptyForm);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
 
-  const fetchDoctor = useCallback(
-    async (idToFetch: number) => {
-      try {
-        const response = await GetDoctobyID(idToFetch);
+  const updateField = <K extends keyof EditFormState>(field: K, value: EditFormState[K]) => setFormData((previous) => ({ ...previous, [field]: value }));
 
-     
-    const doctorData = (response as any)?.message ?? null;
-
-if (!doctorData || typeof doctorData !== "object" || !("id" in doctorData)) {
-  throw new Error("Doctor data not found");
-}
-        const doctor: DoctorDto = doctorData as DoctorDto;
- 
-        form.setFieldsValue({
-          id: doctor.id,
-          userId: doctor.userId,
-          doctorName: doctor.doctorName,
-          specialization: doctor.specialization ?? "",
-          licenseNumber: doctor.licenseNumber ?? "",
-          consultationFee: doctor.consultationFee,
-          branchId: doctor.branchId,
-          departmentId: doctor.departmentId,
-          isActive: doctor.isActive ?? true,
-        });
-      } catch (error) {
-        console.error("Failed to fetch doctor profile:", error);
-        message.error("Failed to load doctor profile.");
-      }
-    },
-    [form]
-  );
+  const fetchDoctor = useCallback(async (idToFetch: number) => {
+    try {
+      const response = await GetDoctobyID(idToFetch);
+      const responseObject = response && typeof response === "object" ? response as { message?: unknown; data?: unknown } : {};
+      const candidate = responseObject.message ?? responseObject.data;
+      if (!candidate || typeof candidate !== "object" || !("id" in candidate)) throw new Error("Doctor data not found");
+      const doctor = candidate as DoctorDto;
+      setFormData({ doctorName: doctor.doctorName || "", userId: doctor.userId, specialization: doctor.specialization || "", licenseNumber: doctor.licenseNumber || "", consultationFee: doctor.consultationFee, branchId: doctor.branchId, departmentId: doctor.departmentId, isActive: doctor.isActive ?? true });
+    } catch (error) {
+      console.error("Failed to fetch doctor profile:", error);
+      notify("Failed to load doctor profile.");
+    }
+  }, []);
 
   const fetchBranches = useCallback(async () => {
     try {
       const response = await getBranch();
-      const branchData =
-        response?.data?.data ?? response?.data ?? response ?? [];
-      setBranches(Array.isArray(branchData) ? branchData : []);
+      const data = response?.data?.data ?? response?.data ?? response ?? [];
+      setBranches(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to load branches:", error);
-      message.error("Failed to load branches.");
+      notify("Failed to load branches.");
     }
   }, []);
 
   const fetchDepartments = useCallback(async () => {
     try {
       const response = await getDepartment();
-      const departmentData =
-        response?.data?.data ?? response?.data ?? response ?? [];
-      setDepartments(Array.isArray(departmentData) ? departmentData : []);
+      const data = response?.data?.data ?? response?.data ?? response ?? [];
+      setDepartments(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to load departments:", error);
-      message.error("Failed to load departments.");
+      notify("Failed to load departments.");
     }
   }, []);
 
   useEffect(() => {
     if (!doctorId || Number.isNaN(doctorId)) {
-      message.error("Invalid doctor ID provided.");
+      notify("Invalid doctor ID provided.");
       setLoading(false);
       return;
     }
-
-    let isMounted = true;
-    setLoading(true);
-
-    Promise.all([
-      fetchDoctor(doctorId),
-      fetchBranches(),
-      fetchDepartments(),
-    ]).finally(() => {
-      if (isMounted) setLoading(false);
-    });
-
-    return () => {
-      isMounted = false;
-    };
+    let mounted = true;
+    Promise.all([fetchDoctor(doctorId), fetchBranches(), fetchDepartments()]).finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, [doctorId, fetchDoctor, fetchBranches, fetchDepartments]);
 
-  const handleSubmit = async (values: any) => {
-    if (!doctorId) {
-      message.error("Doctor ID missing for save operation.");
-      return;
-    }
-
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!doctorId || !formData.branchId || !formData.departmentId) { notify("Please select branch and department."); return; }
     setSubmitting(true);
-
     try {
-      const updateData: UpdateDoctorDto = {
-        id: doctorId,
-        specialization: values.specialization,
-        licenseNumber: values.licenseNumber,
-        consultationFee: values.consultationFee,
-        branchId: values.branchId,
-        departmentId: values.departmentId,
-        isActive: values.isActive,
-        updateBy: currentUserId,
-      };
-
+      const updateData: UpdateDoctorDto = { id: doctorId, specialization: formData.specialization, licenseNumber: formData.licenseNumber, consultationFee: formData.consultationFee, branchId: formData.branchId, departmentId: formData.departmentId, isActive: formData.isActive, updateBy: currentUserId };
       await updateDoctor(updateData);
-      message.success("Doctor details updated successfully.");
-
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        navigate("/doctor");
-      }
+      notify("Doctor details updated successfully.");
+      onSuccess ? onSuccess() : navigate("/doctor");
     } catch (error) {
       console.error("Failed to update doctor details:", error);
-      message.error("Failed to update doctor details.");
-    } finally {
-      setSubmitting(false);
-    }
+      notify("Failed to update doctor details.");
+    } finally { setSubmitting(false); }
   };
 
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel();
-      navigate("/doctor");
-    } else {
-      navigate("/doctor");
-    }
-  };
+  const handleCancel = () => { onCancel?.(); navigate("/doctor"); };
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "400px",
-        }}
-      >
-        <Spin size="large" tip="Loading doctor profile..." />
-      </div>
-    );
-  }
+  if (loading) return <div className="doctor-edit-page d-flex justify-content-center align-items-center min-vh-100 bg-light"><Spinner animation="border" variant="primary" /></div>;
 
   return (
-    <div style={{ padding: "24px" }}>
-      <Card>
-        <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
-          <Col>
-            <Space size="middle">
-              <MedicineBoxOutlined style={{ fontSize: 28, color: "#1890ff" }} />
-              <div>
-                <Title level={3} style={{ margin: 0 }}>
-                  Edit Doctor Profile
-                </Title>
-                <Text type="secondary">Update doctor profile and details</Text>
-              </div>
-            </Space>
-          </Col>
-          <Col>
-            <Button icon={<ArrowLeftOutlined />} onClick={handleCancel}>
-              Back
-            </Button>
-          </Col>
-        </Row>
-
-        <Divider />
-
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item name="userId" hidden>
-            <Input />
-          </Form.Item>
-
-          <Title level={4}>
-            <UserOutlined /> Basic Information
-          </Title>
-
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Doctor Name"
-                name="doctorName"
-                rules={[{ required: true, message: "Please enter doctor name" }]}
-              >
-                <Input placeholder="Enter doctor name" readOnly />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Divider />
-
-          <Title level={4}>
-            <MedicineBoxOutlined /> Professional Information
-          </Title>
-
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Specialization"
-                name="specialization"
-              >
-                <Input placeholder="e.g. Obstetrics & Gynaecology" />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="License Number"
-                name="licenseNumber"
-              >
-                <Input
-                  prefix={<SafetyCertificateOutlined />}
-                  placeholder="Enter medical license number"
-                />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} md={12}>
-              <Form.Item label="Consultation Fee" name="consultationFee">
-  <InputNumber
-    min={0}
-    style={{ width: "100%" }}
-    prefix="₹"
-    placeholder="Enter consultation fee"
-    formatter={(value) =>
-      value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""
-    }
-    parser={(value) => value?.replace(/₹\s?|(,*)/g, "") || ""}
-  />
-</Form.Item>
-            </Col>
-          </Row>
-
-          <Divider />
-
-          <Title level={4}>
-            <BankOutlined /> Organization Details
-          </Title>
-
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Branch"
-                name="branchId"
-                rules={[{ required: true, message: "Please select branch" }]}
-              >
-                <Select
-                  placeholder="Select branch"
-                  showSearch
-                  optionFilterProp="label"
-                  fieldNames={{ label: "branchName", value: "id" }}
-                  options={branches}
-                />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Department"
-                name="departmentId"
-                rules={[{ required: true, message: "Please select department" }]}
-              >
-                <Select
-                  placeholder="Select department"
-                  showSearch
-                  optionFilterProp="label"
-                  fieldNames={{ label: "name", value: "id" }}
-                  options={departments}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Divider />
-
-          <Title level={4}>
-            <AppstoreOutlined /> Account Status
-          </Title>
-
-          <Form.Item label="Status" name="isActive" valuePropName="checked">
-            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-          </Form.Item>
-
-          <Divider />
-
-          <Row justify="end">
-            <Space>
-              <Button icon={<ArrowLeftOutlined />} onClick={handleCancel}>
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={submitting}
-                icon={<SaveOutlined />}
-              >
-                Save Changes
-              </Button>
-            </Space>
-          </Row>
-        </Form>
-      </Card>
-    </div>
+    <div className="doctor-edit-page p-2 p-md-4 bg-light min-vh-100"><Card className="doctor-edit-card border-0 shadow-sm rounded-4 mx-auto" style={{ maxWidth: 1100 }}><Card.Body className="p-3 p-md-4">
+      <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4"><div className="d-flex align-items-center gap-3"><div className="doctor-form-icon"><MedicineBoxOutlined /></div><div><h3 className="mb-1 fw-bold text-dark">Edit Doctor Profile</h3><p className="text-muted mb-0">Update doctor profile and details.</p></div></div><Button variant="outline-secondary" onClick={handleCancel}><ArrowLeftOutlined /> Back</Button></div>
+      <Form onSubmit={handleSubmit}>
+        <div className="form-section-heading mb-3"><span className="section-icon"><MedicineBoxOutlined /></span><div><strong>Basic Information</strong><small>Doctor identity and account details</small></div></div>
+        <Row className="g-3"><Col xs={12} md={6}><Form.Group><Form.Label>Doctor Name</Form.Label><Form.Control value={formData.doctorName} readOnly /></Form.Group></Col><Col xs={12} md={6}><Form.Group><Form.Label>User ID</Form.Label><Form.Control value={formData.userId || ""} readOnly /></Form.Group></Col></Row>
+        <hr className="my-4" /><div className="form-section-heading mb-3"><span className="section-icon"><SafetyCertificateOutlined /></span><div><strong>Professional Information</strong><small>Specialization, license, and consultation fee</small></div></div>
+        <Row className="g-3"><Col xs={12} md={6}><Form.Group><Form.Label>Specialization</Form.Label><Form.Control value={formData.specialization} onChange={(e) => updateField("specialization", e.target.value)} placeholder="e.g. Cardiology" /></Form.Group></Col><Col xs={12} md={6}><Form.Group><Form.Label>License Number</Form.Label><Form.Control value={formData.licenseNumber} onChange={(e) => updateField("licenseNumber", e.target.value)} placeholder="Medical license number" /></Form.Group></Col><Col xs={12} md={6}><Form.Group><Form.Label>Consultation Fee (INR)</Form.Label><Form.Control type="number" min={0} step="0.01" value={formData.consultationFee ?? ""} onChange={(e) => updateField("consultationFee", e.target.value ? Number(e.target.value) : undefined)} placeholder="0.00" /></Form.Group></Col></Row>
+        <hr className="my-4" /><div className="form-section-heading mb-3"><span className="section-icon"><BankOutlined /></span><div><strong>Organization Details</strong><small>Assign the doctor to a branch and department</small></div></div>
+        <Row className="g-3"><Col xs={12} md={6}><Form.Group><Form.Label>Branch</Form.Label><Form.Select required value={formData.branchId || ""} onChange={(e) => updateField("branchId", Number(e.target.value))}><option value="">Select branch</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.branchName}</option>)}</Form.Select></Form.Group></Col><Col xs={12} md={6}><Form.Group><Form.Label><AppstoreOutlined /> Department</Form.Label><Form.Select required value={formData.departmentId || ""} onChange={(e) => updateField("departmentId", e.target.value ? Number(e.target.value) : undefined)}><option value="">Select department</option>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</Form.Select></Form.Group></Col></Row>
+        <hr className="my-4" /><div className="setting-tile d-flex justify-content-between align-items-center"><div><strong className="d-block text-dark">Account Status</strong><small className="text-muted">Active doctors are visible in operational selection lists.</small></div><Form.Check type="switch" checked={formData.isActive} onChange={(e) => updateField("isActive", e.target.checked)} /></div>
+        <hr className="my-4" /><div className="d-flex justify-content-end gap-2 flex-wrap"><Button variant="outline-secondary" type="button" onClick={handleCancel}>Cancel</Button><Button variant="primary" type="submit" disabled={submitting} className="d-flex align-items-center gap-2">{submitting && <Spinner animation="border" size="sm" />}<SaveOutlined /> Save Changes</Button></div>
+      </Form>
+    </Card.Body></Card></div>
   );
 }
 

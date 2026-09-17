@@ -1,0 +1,410 @@
+/* ==========================================
+   Dashboard Wrapper & Global Layout
+========================================== */
+.dashboard-page {
+  min-height: 100vh;
+  padding: 1.75rem;
+  background-color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ==========================================
+   Header Styles (Row 1)
+========================================== */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header-title-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1677ff 0%, #0050b3 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.25);
+}
+
+.header-title-section h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.header-title-section p {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.refresh-button {
+  height: 40px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  font-weight: 500;
+  border-color: #cbd5e1;
+  color: #334155;
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+/* ==========================================
+   Base Dashboard Cards & Metric Cards (Row 2)
+========================================== */
+.dashboard-card {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+/* Equal Height Column Layout Setup for Metrics */
+.dashboard-page .row > .col-12,
+.dashboard-page .row > .col-sm-6,
+.dashboard-page .row > .col-xl-3 {
+  display: flex;
+}
+
+.metric-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.metric-card .card-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.metric-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.metric-label {
+  margin-bottom: 0.25rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  color: #0f172a;
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Metric Colors */
+.blue-text { color: #1677ff; }
+.warning-text { color: #d97706; }
+.success-text { color: #16a34a; }
+.danger-text { color: #dc2626; }
+
+.metric-icon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.metric-icon.blue, 
+.metric-icon.light-blue { background-color: #eff6ff; color: #2563eb; }
+.metric-icon.light-warning { background-color: #fef3c7; color: #d97706; }
+.metric-icon.light-success { background-color: #dcfce7; color: #16a34a; }
+
+/* ==========================================
+   Dashboard Card Headers
+========================================== */
+.dashboard-card-header {
+  padding: 1.25rem 1.25rem 0.75rem !important;
+  background: #ffffff !important;
+  border-bottom: 0 !important;
+}
+
+.dashboard-card-header h5 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* ==========================================
+   Doctor Workload Table (Row 3)
+========================================== */
+.doctor-table {
+  min-width: 750px;
+}
+
+.doctor-table thead th {
+  padding: 0.875rem 1rem;
+  background-color: #f8fafc;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.doctor-table tbody td {
+  padding: 1rem;
+  border-color: #f1f5f9;
+  color: #334155;
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+.doctor-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.doctor-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.doctor-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 180px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.doctor-avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.status-badge {
+  min-width: 32px;
+  padding: 0.35em 0.65em !important;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Completion Rate Progress */
+.completion-cell {
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.progress-track {
+  width: 80px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: #f1f5f9;
+}
+
+.progress-value {
+  height: 100%;
+  border-radius: 9999px;
+  background-color: #16a34a;
+  transition: width 0.4s ease;
+}
+
+/* ==========================================
+   Efficiency Overview Circular Radial
+========================================== */
+.efficiency-section {
+  text-align: center;
+  padding: 0.5rem 0 1rem;
+}
+
+.circle-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.circle-progress {
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.4s ease;
+}
+
+.circle-inner {
+  width: 124px;
+  height: 124px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.circle-inner strong {
+  color: #0f172a;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.circle-inner span {
+  margin-top: 0.25rem;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.efficiency-section h6 {
+  margin-bottom: 0.25rem;
+  color: #0f172a;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.efficiency-section p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+/* Overview Breakdown Rows */
+.overview-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.overview-row:last-child {
+  border-bottom: none;
+}
+
+.overview-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #475569;
+  font-size: 0.8125rem;
+}
+
+.overview-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.overview-icon.danger {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.overview-icon.warning {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+/* ==========================================
+   Loading & Spinners
+========================================== */
+.dashboard-loading {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: #64748b;
+}
+
+.refresh-spin {
+  animation: rotateRefresh 0.8s linear infinite;
+}
+
+@keyframes rotateRefresh {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================
+   Mobile Responsiveness
+========================================== */
+@media (max-width: 768px) {
+  .dashboard-page {
+    padding: 1rem;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .header-title-section h2 {
+    font-size: 1.25rem;
+  }
+
+  .refresh-button {
+    width: 100%;
+    justify-content: center;
+  }
+}

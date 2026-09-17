@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Layout } from "antd";
 import { Routes, Route, useNavigate } from "react-router-dom";
 // The UI package is consumed at runtime because it is not a buildable library.
@@ -25,7 +25,9 @@ import PatientDetails from "./pages/PatientDetails"; // your view component
 import { Appointment } from "./pages/Appointment";
 import{ ModernDashboard } from "./pages/ModernDashboard";
 import{LogoutPage} from "./pages/LogoutPage";
+import{Billing} from "./pages/Billing";
 const { Content } = Layout;
+export const INACTIVITY_LIMIT = 2 * 60 * 1000;
 
 export function App() {
   const [collapsed, setCollapsed] = useState(false);
@@ -72,15 +74,13 @@ export function App() {
 
   }, [navigate]);
 
-  if (!user) return <p>Loading...</p>;
-
   const toggle = () => setCollapsed(!collapsed);
 
   const handleProfile = () => {
     navigate("/profile");
   };
 
- const handleLogout = async () => {
+ const handleLogout = useCallback(async () => {
   try {
     // Call logout API with JWT
     const response = await UserLogoutService.logout();
@@ -103,7 +103,44 @@ export function App() {
       replace: true,
     });
   }
-};
+}, [navigate]);
+
+  useEffect(() => {
+    if (!localStorage.getItem("token")) return;
+
+    let inactivityTimer: number;
+
+    const logoutForInactivity = () => {
+      void handleLogout();
+    };
+
+    const resetInactivityTimer = () => {
+      window.clearTimeout(inactivityTimer);
+      inactivityTimer = window.setTimeout(logoutForInactivity, INACTIVITY_LIMIT);
+    };
+
+    const activityEvents: Array<keyof WindowEventMap> = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "scroll",
+      "touchstart",
+    ];
+
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, resetInactivityTimer);
+    });
+    resetInactivityTimer();
+
+    return () => {
+      window.clearTimeout(inactivityTimer);
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, resetInactivityTimer);
+      });
+    };
+  }, [handleLogout]);
+
+  if (!user) return <p>Loading...</p>;
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -151,6 +188,7 @@ export function App() {
            <Route path="/appointments" element={<Appointment />} />
            <Route path="/dashboard" element={<ModernDashboard />} />
            <Route path="/logout" element={<LogoutPage />} />
+           <Route path="/billing" element={<Billing/>} />
           </Routes>
         </Content>
       </Layout>

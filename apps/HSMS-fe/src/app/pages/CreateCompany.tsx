@@ -1,19 +1,6 @@
-import {
-  Button,
-  Card,
-  Col,
-  Form,
-  Input,
-  Row,
-  Select,
-  Switch,
-  message,
-  Typography,
-  Divider,
-} from "antd";
+import { Button, Card, Col, Form, Row, Spinner } from "react-bootstrap";
 import { 
   PlusOutlined, 
-  ClearOutlined, 
   ShopOutlined, 
   EnvironmentOutlined, 
   SafetyCertificateOutlined 
@@ -26,8 +13,22 @@ import { getState } from "../services/State.service";
 import { getCity } from "../services/City.service";
 import { getCountries } from "../services/country.service";
 
-const { Title, Text } = Typography;
-const { Option } = Select;
+const initialForm: CreateCompanyDto = {
+  companyname: "",
+  registrationNumber: "",
+  gstin: "",
+  panNumber: "",
+  email: "",
+  phone: "",
+  website: "",
+  addressLine1: "",
+  addressLine2: "",
+  cityId: 0,
+  stateId: 0,
+  countryId: 0,
+  postalCode: "",
+  isActive: true,
+};
 
 // =========================================================
 // TYPES
@@ -56,12 +57,11 @@ interface CityOption {
 // =========================================================
 
 export function CreateCompany() {
-  const [form] = Form.useForm<CreateCompanyDto>();
-
   // =========================================================
   // STATE
   // =========================================================
 
+  const [formData, setFormData] = useState<CreateCompanyDto>(initialForm);
   const [loading, setLoading] = useState(false);
   const [countryLoading, setCountryLoading] = useState(false);
   const [stateLoading, setStateLoading] = useState(false);
@@ -75,24 +75,49 @@ export function CreateCompany() {
   // EXTRACT ARRAY FROM API RESPONSE
   // =========================================================
 
-  const extractDataArray = <T,>(result: any): T[] => {
+  const extractDataArray = <T,>(result: unknown): T[] => {
+    if (!result || typeof result !== "object") return [];
+    const response = result as { data?: unknown };
     if (Array.isArray(result)) return result;
-    if (Array.isArray(result?.data)) return result.data;
-    if (Array.isArray(result?.data?.data)) return result.data.data;
+    if (Array.isArray(response.data)) return response.data as T[];
+    if (response.data && typeof response.data === "object" && Array.isArray((response.data as { data?: unknown }).data)) {
+      return (response.data as { data: T[] }).data;
+    }
     return [];
   };
 
-  const extractDataArrays = <T,>(result: any): T[] => {
+  const extractDataArrays = <T,>(result: unknown): T[] => {
+    if (!result || typeof result !== "object") return [];
+    const response = result as { data?: unknown };
     if (Array.isArray(result)) return result;
-    if (Array.isArray(result?.data)) return result.data;
-    if (Array.isArray(result?.data?.data)) return result.data.data;
-    
-    if (result && typeof result === "object") {
-      const foundKey = Object.keys(result).find((key) => Array.isArray(result[key]));
-      if (foundKey) return result[foundKey];
+    if (Array.isArray(response.data)) return response.data as T[];
+    if (response.data && typeof response.data === "object" && Array.isArray((response.data as { data?: unknown }).data)) {
+      return (response.data as { data: T[] }).data;
     }
-
+    
+    const foundKey = Object.keys(result).find((key) => Array.isArray((result as Record<string, unknown>)[key]));
+    if (foundKey) return (result as Record<string, T[]>)[foundKey];
     return [];
+  };
+
+  const notify = (text: string) => {
+    window.alert(text);
+  };
+
+  const updateField = <K extends keyof CreateCompanyDto>(field: K, value: CreateCompanyDto[K]) => {
+    setFormData((previous) => ({ ...previous, [field]: value }));
+  };
+
+  const validateForm = () => {
+    if (!formData.companyname.trim() || !formData.registrationNumber.trim() || !formData.gstin.trim() || !formData.panNumber.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.addressLine1.trim() || !formData.countryId || !formData.stateId || !formData.cityId) {
+      notify("Please complete all required fields.");
+      return false;
+    }
+    if (formData.gstin.trim().length !== 15 || formData.panNumber.trim().length !== 10) {
+      notify("GSTIN must be 15 characters and PAN must be 10 characters.");
+      return false;
+    }
+    return true;
   };
 
   // =========================================================
@@ -107,7 +132,7 @@ export function CreateCompany() {
       setStates(data);
     } catch (error) {
       console.error("Load states error:", error);
-      message.error("Failed to load states");
+      notify("Failed to load states");
       setStates([]);
     } finally {
       setStateLoading(false);
@@ -127,7 +152,7 @@ export function CreateCompany() {
       setCities(filteredCities);
     } catch (error) {
       console.error("Load cities error:", error);
-      message.error("Failed to load cities");
+      notify("Failed to load cities");
       setCities([]);
     } finally {
       setCityLoading(false);
@@ -147,7 +172,7 @@ export function CreateCompany() {
         setCountries(data);
       } catch (error) {
         console.error("Load countries error:", error);
-        message.error("Failed to load countries");
+        notify("Failed to load countries");
         setCountries([]);
       } finally {
         setCountryLoading(false);
@@ -163,58 +188,44 @@ export function CreateCompany() {
   // =========================================================
 
   const handleStateChange = (value: number) => {
-    form.setFieldsValue({
-      cityId: undefined,
-    });
+    updateField("stateId", value);
+    updateField("cityId", 0);
     setCities([]);
     if (value) {
       loadCity(Number(value));
     }
   };
 
-  const handleStateClear = () => {
-    form.setFieldsValue({
-      stateId: undefined,
-      cityId: undefined,
-    });
-    setCities([]);
-  };
-
   // =========================================================
   // CREATE COMPANY
   // =========================================================
 
-  const handleCreate = async (values: CreateCompanyDto) => {
+  const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!validateForm()) return;
     setLoading(true);
 
     try {
       const payload: CreateCompanyDto = {
-        companyname: values.companyname?.trim() || "",
-        registrationNumber: values.registrationNumber?.trim() || "",
-        gstin: values.gstin?.trim().toUpperCase() || "",
-        panNumber: values.panNumber?.trim().toUpperCase() || "",
-        email: values.email?.trim() || "",
-        phone: values.phone?.trim() || "",
-        website: values.website?.trim() || "",
-        addressLine1: values.addressLine1?.trim() || "",
-        addressLine2: values.addressLine2?.trim() || "",
-        cityId: Number(values.cityId) || 0,
-        stateId: Number(values.stateId) || 0,
-        countryId: Number(values.countryId) || 0,
-        postalCode: values.postalCode?.trim() || "",
-        isActive: values.isActive ?? true,
+        ...formData,
+        companyname: formData.companyname.trim(),
+        registrationNumber: formData.registrationNumber.trim(),
+        gstin: formData.gstin.trim().toUpperCase(),
+        panNumber: formData.panNumber.trim().toUpperCase(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        website: formData.website.trim(),
+        addressLine1: formData.addressLine1.trim(),
+        addressLine2: formData.addressLine2?.trim() || "",
+        postalCode: formData.postalCode.trim(),
       };
 
       await createCompany(payload);
-      message.success("Company created successfully");
+      notify("Company created successfully");
       handleReset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Create company error:", error);
-      message.error(
-        error?.response?.data?.message ||
-          error?.response?.data?.title ||
-          "Create company failed"
-      );
+      notify(error instanceof Error ? error.message : "Create company failed");
     } finally {
       setLoading(false);
     }
@@ -225,10 +236,7 @@ export function CreateCompany() {
   // =========================================================
 
   const handleReset = () => {
-    form.resetFields();
-    form.setFieldsValue({
-      isActive: true,
-    });
+    setFormData(initialForm);
     setCities([]);
   };
 
@@ -237,286 +245,56 @@ export function CreateCompany() {
   // =========================================================
 
   return (
-    <div style={{ padding: "24px", background: "#f8fafc", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        
-        {/* Header Section */}
-        <div style={{ marginBottom: 24 }}>
-          <Title level={3} style={{ margin: 0, fontWeight: 600, color: "#1e293b" }}>Company Management</Title>
-          <Text type="secondary">Register a new company profile and manage corporate credentials.</Text>
+    <div className="p-2 p-md-4 bg-light min-vh-100">
+      <div className="mx-auto" style={{ maxWidth: 1100 }}>
+        <div className="mb-4">
+          <h3 className="mb-1 fw-semibold text-dark">Company Management</h3>
+          <p className="text-muted mb-0">Register a new company profile and manage corporate credentials.</p>
         </div>
 
-        <Card 
-          bordered={false} 
-          style={{ 
-            borderRadius: "16px", 
-            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)" 
-          }}
-        >
-          <Form<CreateCompanyDto>
-            form={form}
-            layout="vertical"
-            onFinish={handleCreate}
-            autoComplete="off"
-            initialValues={{ isActive: true }}
-            requiredMark="optional"
-          >
-            {/* Section: Company Profile Information */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <ShopOutlined style={{ color: "#3b82f6", fontSize: "18px" }} />
-              <Text strong style={{ fontSize: "16px", color: "#334155" }}>Company Profile & Credentials</Text>
-            </div>
-            
-            <Row gutter={20}>
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item
-                  label="Company Name"
-                  name="name"
-                  rules={[{ required: true, message: "Enter company name" }]}
-                >
-                  <Input placeholder="Arogya Healthcare Pvt Ltd" size="large" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item
-                  label="Registration Number"
-                  name="registrationNumber"
-                  rules={[{ required: true, message: "Enter registration number" }]}
-                >
-                  <Input placeholder="U85110KA2026PTC123456" size="large" />
-                </Form.Item>
-              </Col>
+        <Card className="border-0 shadow-sm rounded-4">
+          <Card.Body className="p-3 p-md-4">
+            <Form onSubmit={handleCreate} noValidate>
+              <div className="d-flex align-items-center gap-2 mb-3">
+                <ShopOutlined className="text-primary" />
+                <strong className="text-dark">Company Profile & Credentials</strong>
+              </div>
 
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item
-                  label="GSTIN"
-                  name="gstin"
-                  rules={[
-                    { required: true, message: "Enter GSTIN" },
-                    { len: 15, message: "GSTIN must be 15 characters" },
-                  ]}
-                >
-                  <Input 
-                    placeholder="29ABCDE1234F1Z5" 
-                    maxLength={15} 
-                    size="large"
-                    style={{ textTransform: "uppercase" }} 
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item
-                  label="PAN Number"
-                  name="panNumber"
-                  rules={[
-                    { required: true, message: "Enter PAN number" },
-                    { len: 10, message: "PAN must be 10 characters" },
-                  ]}
-                >
-                  <Input 
-                    placeholder="ABCDE1234F" 
-                    maxLength={10} 
-                    size="large"
-                    style={{ textTransform: "uppercase" }} 
-                  />
-                </Form.Item>
-              </Col>
+              <Row className="g-3">
+                <Col xs={12} md={6}><Form.Group><Form.Label>Company Name</Form.Label><Form.Control required value={formData.companyname} onChange={(e) => updateField("companyname", e.target.value)} placeholder="Arogya Healthcare Pvt Ltd" /></Form.Group></Col>
+                <Col xs={12} md={6}><Form.Group><Form.Label>Registration Number</Form.Label><Form.Control required value={formData.registrationNumber} onChange={(e) => updateField("registrationNumber", e.target.value)} placeholder="U85110KA2026PTC123456" /></Form.Group></Col>
+                <Col xs={12} md={6}><Form.Group><Form.Label>GSTIN</Form.Label><Form.Control required maxLength={15} value={formData.gstin} onChange={(e) => updateField("gstin", e.target.value.toUpperCase())} placeholder="29ABCDE1234F1Z5" /></Form.Group></Col>
+                <Col xs={12} md={6}><Form.Group><Form.Label>PAN Number</Form.Label><Form.Control required maxLength={10} value={formData.panNumber} onChange={(e) => updateField("panNumber", e.target.value.toUpperCase())} placeholder="ABCDE1234F" /></Form.Group></Col>
+                <Col xs={12} md={4}><Form.Group><Form.Label>Email</Form.Label><Form.Control required type="email" value={formData.email} onChange={(e) => updateField("email", e.target.value)} placeholder="info@arogyahealth.in" /></Form.Group></Col>
+                <Col xs={12} md={4}><Form.Group><Form.Label>Phone</Form.Label><Form.Control required value={formData.phone} onChange={(e) => updateField("phone", e.target.value)} placeholder="+918040001122" /></Form.Group></Col>
+                <Col xs={12} md={4}><Form.Group><Form.Label>Website</Form.Label><Form.Control type="url" value={formData.website} onChange={(e) => updateField("website", e.target.value)} placeholder="https://www.example.com" /></Form.Group></Col>
+              </Row>
 
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item
-                  label="Email"
-                  name="email"
-                  rules={[
-                    { required: true, message: "Enter email" },
-                    { type: "email", message: "Enter valid email" },
-                  ]}
-                >
-                  <Input placeholder="info@arogyahealth.in" size="large" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item
-                  label="Phone"
-                  name="phone"
-                  rules={[{ required: true, message: "Enter phone number" }]}
-                >
-                  <Input placeholder="+918040001122" size="large" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item
-                  label="Website"
-                  name="website"
-                  rules={[{ type: "url", message: "Enter valid website URL" }]}
-                >
-                  <Input placeholder="https://www.example.com" size="large" />
-                </Form.Item>
-              </Col>
-            </Row>
+              <hr className="my-4" />
+              <div className="d-flex align-items-center gap-2 mb-3"><EnvironmentOutlined className="text-primary" /><strong className="text-dark">Location & Address</strong></div>
+              <Row className="g-3">
+                <Col xs={12} md={6}><Form.Group><Form.Label>Address Line 1</Form.Label><Form.Control required as="textarea" rows={2} value={formData.addressLine1} onChange={(e) => updateField("addressLine1", e.target.value)} placeholder="100 Outer Ring Road, Bellandur" /></Form.Group></Col>
+                <Col xs={12} md={6}><Form.Group><Form.Label>Address Line 2</Form.Label><Form.Control as="textarea" rows={2} value={formData.addressLine2 || ""} onChange={(e) => updateField("addressLine2", e.target.value)} placeholder="Additional address info" /></Form.Group></Col>
+                <Col xs={12} sm={6} md={3}><Form.Group><Form.Label>Country</Form.Label><Form.Select required disabled={countryLoading} value={formData.countryId || ""} onChange={(e) => updateField("countryId", Number(e.target.value))}><option value="">{countryLoading ? "Loading..." : "Select country"}</option>{countries.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}</Form.Select></Form.Group></Col>
+                <Col xs={12} sm={6} md={3}><Form.Group><Form.Label>State</Form.Label><Form.Select required disabled={stateLoading} value={formData.stateId || ""} onChange={(e) => handleStateChange(Number(e.target.value))}><option value="">{stateLoading ? "Loading..." : "Select state"}</option>{states.map((state) => <option key={state.id} value={state.id}>{state.name}</option>)}</Form.Select></Form.Group></Col>
+                <Col xs={12} sm={6} md={3}><Form.Group><Form.Label>City</Form.Label><Form.Select required disabled={!formData.stateId || cityLoading} value={formData.cityId || ""} onChange={(e) => updateField("cityId", Number(e.target.value))}><option value="">{cityLoading ? "Loading..." : "Select city"}</option>{cities.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}</Form.Select></Form.Group></Col>
+                <Col xs={12} sm={6} md={3}><Form.Group><Form.Label>Postal Code</Form.Label><Form.Control maxLength={10} value={formData.postalCode} onChange={(e) => updateField("postalCode", e.target.value)} placeholder="560038" /></Form.Group></Col>
+              </Row>
 
-            <Divider style={{ margin: "12px 0 24px 0" }} />
+              <hr className="my-4" />
+              <div className="d-flex align-items-center gap-2 mb-3"><SafetyCertificateOutlined className="text-primary" /><strong className="text-dark">Account Status</strong></div>
+              <Form.Check type="switch" id="company-active" label="Company is active" checked={formData.isActive} onChange={(e) => updateField("isActive", e.target.checked)} />
 
-            {/* Section: Location Info */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <EnvironmentOutlined style={{ color: "#3b82f6", fontSize: "18px" }} />
-              <Text strong style={{ fontSize: "16px", color: "#334155" }}>Location & Address</Text>
-            </div>
-
-            <Row gutter={20}>
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item
-                  label="Address Line 1"
-                  name="addressLine1"
-                  rules={[{ required: true, message: "Enter address" }]}
-                >
-                  <Input.TextArea rows={2} placeholder="100 Outer Ring Road, Bellandur" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={12}>
-                <Form.Item
-                  label="Address Line 2"
-                  name="addressLine2"
-                >
-                  <Input.TextArea rows={2} placeholder="Additional address info" />
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item
-                  label="Country"
-                  name="countryId"
-                  rules={[{ required: true, message: "Select country" }]}
-                >
-                  <Select
-                    showSearch
-                    allowClear
-                    size="large"
-                    placeholder={countryLoading ? "Loading..." : "Select country"}
-                    optionFilterProp="children"
-                    loading={countryLoading}
-                    disabled={countryLoading}
-                    notFoundContent={countryLoading ? "Loading..." : "No countries found"}
-                  >
-                    {countries.map((country) => (
-                      <Option key={country.id} value={country.id}>
-                        {country.name}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item
-                  label="State"
-                  name="stateId"
-                  rules={[{ required: true, message: "Select state" }]}
-                >
-                  <Select
-                    showSearch
-                    allowClear
-                    size="large"
-                    placeholder="Select state"
-                    optionFilterProp="children"
-                    loading={stateLoading}
-                    onChange={handleStateChange}
-                    onClear={handleStateClear}
-                  >
-                    {states.map((state) => (
-                      <Option key={state.id} value={state.id}>
-                        {state.name}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item
-                  label="City"
-                  name="cityId"
-                  rules={[{ required: true, message: "Select city" }]}
-                >
-                  <Select
-                    showSearch
-                    allowClear
-                    size="large"
-                    placeholder={cityLoading ? "Loading..." : "Select city"}
-                    optionFilterProp="children"
-                    loading={cityLoading}
-                    notFoundContent={cityLoading ? "Loading..." : "No cities found"}
-                  >
-                    {cities.map((city) => (
-                      <Option key={city.id} value={city.id}>
-                        {city.name}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item
-                  label="Postal Code"
-                  name="postalCode"
-                >
-                  <Input placeholder="560038" maxLength={10} size="large" />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Divider style={{ margin: "12px 0 24px 0" }} />
-
-            {/* Section: Status Control */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <SafetyCertificateOutlined style={{ color: "#3b82f6", fontSize: "18px" }} />
-              <Text strong style={{ fontSize: "16px", color: "#334155" }}>Account Status</Text>
-            </div>
-
-            <Row gutter={20}>
-              <Col xs={24} sm={12}>
-                <Form.Item name="isActive" valuePropName="checked" style={{ marginBottom: 0 }}>
-                  <div style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    justifyContent: "space-between", 
-                    padding: "12px 16px", 
-                    background: "#f1f5f9", 
-                    borderRadius: "10px",
-                    border: "1px solid #e2e8f0"
-                  }}>
-                    <div>
-                      <Text strong style={{ display: "block", color: "#334155" }}>Company Status</Text>
-                      <Text type="secondary" style={{ fontSize: "13px" }}>Set organization active or inactive</Text>
-                    </div>
-                    <Switch />
-                  </div>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Divider style={{ margin: "12px 0 24px 0" }} />
-
-            {/* Form Actions */}
-            <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
-              <Button
-                icon={<ClearOutlined />}
-                onClick={handleReset}
-                disabled={loading}
-                size="large"
-                style={{ marginRight: 12, borderRadius: "8px" }}
-              >
-                Reset Form
-              </Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                icon={<PlusOutlined />}
-                loading={loading}
-                size="large"
-                style={{ borderRadius: "8px", paddingLeft: 24, paddingRight: 24 }}
-              >
-                Create Company
-              </Button>
-            </Form.Item>
-          </Form>
+              <hr className="my-4" />
+              <div className="d-flex justify-content-end gap-2 flex-wrap">
+                <Button variant="outline-secondary" type="button" onClick={handleReset} disabled={loading}>Clear Form</Button>
+                <Button variant="primary" type="submit" disabled={loading} className="d-flex align-items-center gap-2">
+                  {loading && <Spinner animation="border" size="sm" />}
+                  <PlusOutlined /> Create Company
+                </Button>
+              </div>
+            </Form>
+          </Card.Body>
         </Card>
       </div>
     </div>

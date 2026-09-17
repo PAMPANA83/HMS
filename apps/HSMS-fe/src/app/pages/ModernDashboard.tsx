@@ -1,33 +1,8 @@
-import React, { useState, useEffect } from "react";
-import {
-  Card,
-  Row,
-  Col,
-  Statistic,
-  Table,
-  Typography,
-  Tag,
-  Spin,
-  message,
-  Space,
-  Button,
-  Progress,
-  Avatar,
-  Badge,
-} from "antd";
-import {
-  CalendarOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  UserOutlined,
-  ReloadOutlined,
-  MedicineBoxOutlined,
-} from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table/interface";
+﻿import { useState, useEffect } from "react";
+import { Card, Row, Col, Button, Badge, ProgressBar, Table, Spinner } from "react-bootstrap";
+import { FaCalendarAlt, FaCheckCircle, FaClock, FaUserMd, FaSyncAlt, FaBriefcaseMedical } from "react-icons/fa";
 import { AppointmentData } from "../models/Appointment.dto";
 import { getAllAppointments } from "../services/Appointment.service";
-
-const { Title, Text } = Typography;
 
 interface DoctorStatusSummary {
   doctorName: string;
@@ -55,7 +30,7 @@ export function ModernDashboard() {
       setAppointments(appointmentsData as AppointmentData[]);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      message.error("Failed to load dashboard data.");
+      alert("Failed to load dashboard data.");
     } finally {
       setLoading(false);
     }
@@ -65,7 +40,6 @@ export function ModernDashboard() {
     fetchAppointments();
   }, []);
 
-  // Calculate Overall Status Counts
   const statusCounts = appointments.reduce(
     (acc, app) => {
       const status = app.status || "Scheduled";
@@ -79,7 +53,6 @@ export function ModernDashboard() {
     { total: 0, scheduled: 0, pending: 0, completed: 0, cancelled: 0 }
   );
 
-  // Calculate Doctor-wise Summary
   const doctorSummaryMap = appointments.reduce((acc, app) => {
     const docName = app.doctorName || "Unassigned";
     const status = app.status || "Scheduled";
@@ -106,236 +79,172 @@ export function ModernDashboard() {
 
   const doctorSummaryData: DoctorStatusSummary[] = Object.values(doctorSummaryMap);
 
-  // Completion rate calculation
   const completionRate =
     statusCounts.total > 0
       ? Math.round((statusCounts.completed / statusCounts.total) * 100)
       : 0;
 
-  // Fixed Table Columns Definitions with explicit widths and whiteSpace rules
-  const doctorColumns: ColumnsType<DoctorStatusSummary> = [
+  const metrics = [
     {
-      title: "Doctor",
-      dataIndex: "doctorName",
-      key: "doctorName",
-      width: 220,
-      render: (text) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, whiteSpace: "nowrap" }}>
-          <Avatar
-            style={{ backgroundColor: "#e6f4ff", color: "#1677ff", flexShrink: 0 }}
-            icon={<UserOutlined />}
-          />
-          <Text strong style={{ whiteSpace: "nowrap" }}>
-            {text}
-          </Text>
-        </div>
-      ),
+      label: "Total Appointments",
+      value: statusCounts.total,
+      icon: <FaCalendarAlt className="text-primary me-2" />,
+      variant: "primary",
     },
     {
-      title: "Total Load",
-      dataIndex: "total",
-      key: "total",
-      width: 110,
-      sorter: (a, b) => a.total - b.total,
-      render: (val) => (
-        <Badge count={val} overflowCount={999} style={{ backgroundColor: "#001529" }} />
-      ),
+      label: "Scheduled",
+      value: statusCounts.scheduled,
+      icon: <FaClock className="text-primary me-2" />,
+      variant: "primary",
     },
     {
-      title: "Scheduled",
-      dataIndex: "scheduled",
-      key: "scheduled",
-      width: 100,
-      render: (val) => (
-        <Tag color="blue" style={{ borderRadius: 12, padding: "0 10px" }}>
-          {val}
-        </Tag>
-      ),
+      label: "Pending",
+      value: statusCounts.pending,
+      icon: <FaClock className="text-warning me-2" />,
+      variant: "warning",
     },
     {
-      title: "Pending",
-      dataIndex: "pending",
-      key: "pending",
-      width: 100,
-      render: (val) => (
-        <Tag color="gold" style={{ borderRadius: 12, padding: "0 10px" }}>
-          {val}
-        </Tag>
-      ),
-    },
-    {
-      title: "Completed",
-      dataIndex: "completed",
-      key: "completed",
-      width: 100,
-      render: (val) => (
-        <Tag color="green" style={{ borderRadius: 12, padding: "0 10px" }}>
-          {val}
-        </Tag>
-      ),
-    },
-    {
-      title: "Cancelled",
-      dataIndex: "cancelled",
-      key: "cancelled",
-      width: 100,
-      render: (val) => (
-        <Tag color="red" style={{ borderRadius: 12, padding: "0 10px" }}>
-          {val}
-        </Tag>
-      ),
-    },
-    {
-      title: "Completion Rate",
-      key: "rate",
-      width: 160,
-      render: (_, record) => {
-        const rate =
-          record.total > 0 ? Math.round((record.completed / record.total) * 100) : 0;
-        return <Progress percent={rate} size="small" strokeColor="#52c41a" style={{ width: 100 }} />;
-      },
+      label: "Completed",
+      value: statusCounts.completed,
+      icon: <FaCheckCircle className="text-success me-2" />,
+      variant: "success",
     },
   ];
 
   return (
-    <div style={{ padding: "24px", backgroundColor: "#f8fafc", minHeight: "100vh" }}>
-      {/* Header */}
-      <Row justify="space-between" align="middle" style={{ marginBottom: "24px" }}>
-        <Col>
-          <Space align="center" size="middle">
-            <Avatar
-              size={44}
-              shape="square"
-              style={{ backgroundColor: "#1677ff", borderRadius: 10 }}
-              icon={<MedicineBoxOutlined />}
-            />
-            <div>
-              <Title level={3} style={{ margin: 0 }}>
-                Appointment Analytics
-              </Title>
-              <Text type="secondary">Real-time status overview & doctor performance</Text>
+    <div className="p-4 bg-light min-vh-100">
+      <Row className="align-items-center justify-content-between mb-4">
+        <Col xs="auto">
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="d-flex align-items-center justify-content-center rounded-3 bg-primary text-white"
+              style={{ width: 44, height: 44 }}
+            >
+              <FaBriefcaseMedical size={22} />
             </div>
-          </Space>
+            <div>
+              <h3 className="mb-0">Appointment Analytics</h3>
+              <small className="text-muted">Real-time status overview & doctor performance</small>
+            </div>
+          </div>
         </Col>
-        <Col>
-          <Button
-            type="primary"
-            ghost
-            icon={<ReloadOutlined />}
-            onClick={fetchAppointments}
-            loading={loading}
-            style={{ borderRadius: 8 }}
-          >
+        <Col xs="auto">
+          <Button variant="outline-primary" className="rounded-3 d-flex align-items-center gap-2" onClick={fetchAppointments} disabled={loading}>
+            <FaSyncAlt />
             Refresh
           </Button>
         </Col>
       </Row>
 
-      <Spin spinning={loading}>
-        {/* Metric Cards Row */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={12} lg={6}>
-            <Card style={{ borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-              <Statistic
-                title={<Text type="secondary">Total Appointments</Text>}
-                value={statusCounts.total}
-                prefix={<CalendarOutlined style={{ color: "#1677ff", marginRight: 8 }} />}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card style={{ borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-              <Statistic
-                title={<Text type="secondary">Scheduled</Text>}
-                value={statusCounts.scheduled}
-                valueStyle={{ color: "#1677ff" }}
-                prefix={<ClockCircleOutlined style={{ marginRight: 8 }} />}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card style={{ borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-              <Statistic
-                title={<Text type="secondary">Pending</Text>}
-                value={statusCounts.pending}
-                valueStyle={{ color: "#faad14" }}
-                prefix={<ClockCircleOutlined style={{ marginRight: 8 }} />}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card style={{ borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-              <Statistic
-                title={<Text type="secondary">Completed</Text>}
-                value={statusCounts.completed}
-                valueStyle={{ color: "#52c41a" }}
-                prefix={<CheckCircleOutlined style={{ marginRight: 8 }} />}
-              />
-            </Card>
-          </Col>
-        </Row>
+      {loading ? (
+        <div className="d-flex justify-content-center py-5">
+          <Spinner animation="border" variant="primary" />
+        </div>
+      ) : (
+        <>
+          <Row className="g-3 mb-4">
+            {metrics.map((metric) => (
+              <Col xs={12} sm={6} lg={3} key={metric.label}>
+                <Card className="shadow-sm border-0 rounded-3 h-100">
+                  <Card.Body>
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                      <small className="text-muted mb-0">{metric.label}</small>
+                      {metric.icon}
+                    </div>
+                    <div className={`fs-3 fw-bold text-${metric.variant}`}>{metric.value}</div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
 
-        {/* Doctor Table and Efficiency Progress */}
-        <Row gutter={[16, 16]}>
-          <Col xs={24} lg={17}>
-            <Card
-              title={<Text strong style={{ fontSize: 16 }}>Doctor Workload & Status Breakdown</Text>}
-              style={{ borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
-            >
-              <Table
-                columns={doctorColumns}
-                dataSource={doctorSummaryData}
-                rowKey="doctorName"
-                pagination={{ pageSize: 5 }}
-                scroll={{ x: 800 }}
-              />
-            </Card>
-          </Col>
+          <Row className="g-3">
+            <Col xs={12} lg={8}>
+              <Card className="shadow-sm border-0 rounded-3 h-100">
+                <Card.Header className="bg-white border-0 fw-semibold fs-6">
+                  Doctor Workload & Status Breakdown
+                </Card.Header>
+                <Card.Body className="p-0">
+                  <Table striped bordered hover responsive className="mb-0">
+                    <thead>
+                      <tr>
+                        <th>Doctor</th>
+                        <th>Total Load</th>
+                        <th>Scheduled</th>
+                        <th>Pending</th>
+                        <th>Completed</th>
+                        <th>Cancelled</th>
+                        <th>Completion Rate</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {doctorSummaryData.map((doctor) => {
+                        const rate = doctor.total > 0 ? Math.round((doctor.completed / doctor.total) * 100) : 0;
+                        return (
+                          <tr key={doctor.doctorName}>
+                            <td>
+                              <div className="d-flex align-items-center gap-2 text-nowrap">
+                                <div className="d-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary" style={{ width: 36, height: 36 }}>
+                                  <FaUserMd size={14} />
+                                </div>
+                                <span className="fw-semibold">{doctor.doctorName}</span>
+                              </div>
+                            </td>
+                            <td><Badge bg="dark" pill>{doctor.total}</Badge></td>
+                            <td><Badge bg="primary" pill>{doctor.scheduled}</Badge></td>
+                            <td><Badge bg="warning" text="dark" pill>{doctor.pending}</Badge></td>
+                            <td><Badge bg="success" pill>{doctor.completed}</Badge></td>
+                            <td><Badge bg="danger" pill>{doctor.cancelled}</Badge></td>
+                            <td style={{ minWidth: 130 }}>
+                              <ProgressBar now={rate} label={`${rate}%`} />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                </Card.Body>
+              </Card>
+            </Col>
 
-          {/* Efficiency Overview Card */}
-          <Col xs={24} lg={7}>
-            <Card
-              title={<Text strong style={{ fontSize: 16 }}>Efficiency Overview</Text>}
-              style={{ borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.05)", height: "100%" }}
-            >
-              <div style={{ textAlign: "center", padding: "16px 0" }}>
-                <Progress
-                  type="dashboard"
-                  percent={completionRate}
-                  strokeColor="#52c41a"
-                  size={160}
-                />
-                <div style={{ marginTop: 12 }}>
-                  <Text strong style={{ fontSize: 16, display: "block" }}>
-                    Overall Completion Rate
-                  </Text>
-                  <Text type="secondary">
-                    {statusCounts.completed} out of {statusCounts.total} appointments completed
-                  </Text>
-                </div>
-              </div>
+            <Col xs={12} lg={4}>
+              <Card className="shadow-sm border-0 rounded-3 h-100">
+                <Card.Header className="bg-white border-0 fw-semibold fs-6">
+                  Efficiency Overview
+                </Card.Header>
+                <Card.Body className="text-center">
+                  <div className="d-flex justify-content-center my-3">
+                    <div className="position-relative d-inline-flex align-items-center justify-content-center rounded-circle border border-success border-5" style={{ width: 160, height: 160 }}>
+                      <span className="fw-bold fs-3 text-success">{completionRate}%</span>
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="fw-semibold fs-5">Overall Completion Rate</div>
+                    <small className="text-muted">
+                      {statusCounts.completed} out of {statusCounts.total} appointments completed
+                    </small>
+                  </div>
 
-              <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid #f0f0f0" }}>
-                <Row justify="space-between" style={{ marginBottom: 8 }}>
-                  <Text type="secondary">Cancellation Rate:</Text>
-                  <Text type="danger" strong>
-                    {statusCounts.total > 0
-                      ? Math.round((statusCounts.cancelled / statusCounts.total) * 100)
-                      : 0}
-                    %
-                  </Text>
-                </Row>
-                <Row justify="space-between">
-                  <Text type="secondary">Active Queue:</Text>
-                  <Text type="warning" strong>
-                    {statusCounts.scheduled + statusCounts.pending} Pending
-                  </Text>
-                </Row>
-              </div>
-            </Card>
-          </Col>
-        </Row>
-      </Spin>
+                  <div className="border-top pt-3 text-start">
+                    <div className="d-flex justify-content-between mb-2">
+                      <span className="text-muted">Cancellation Rate:</span>
+                      <strong className="text-danger">
+                        {statusCounts.total > 0 ? Math.round((statusCounts.cancelled / statusCounts.total) * 100) : 0}%
+                      </strong>
+                    </div>
+                    <div className="d-flex justify-content-between">
+                      <span className="text-muted">Active Queue:</span>
+                      <strong className="text-warning">
+                        {statusCounts.scheduled + statusCounts.pending} Pending
+                      </strong>
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        </>
+      )}
     </div>
   );
 }

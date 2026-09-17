@@ -1,352 +1,128 @@
 import React, { useEffect, useState } from "react";
+import { Button, Card, Col, Form, Row, Spinner } from "react-bootstrap";
 import {
-  Form,
-  Input,
-  InputNumber,
-  Select,
-  Switch,
-  Row,
-  Col,
-  Button,
-  message,
-  Divider,
-  Typography,
-  Card,
-  Space,
-} from "antd";
-import {
-  MedicineBoxOutlined,
-  UserOutlined,
-  IdcardOutlined,
-  DollarOutlined,
-  BankOutlined,
-  AppstoreOutlined,
+  ApartmentOutlined,
   ArrowLeftOutlined,
+  BankOutlined,
+  MedicineBoxOutlined,
   SaveOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import { CreateDoctorDto } from "../models/Doctor.dto";
 import { createDoctor, getDoctorsdropdown } from "../services/Doctor.service";
 import { getBranch } from "../services/Branch.service";
 import { getDepartment } from "../services/Department.service";
 
-const { Text, Title } = Typography;
-
 interface DoctorFormProps {
-  currentUserId?: number; // Logged-in user ID for createBy
+  currentUserId?: number;
   onCancel: () => void;
   onSuccess: () => void;
 }
-  const storedUser = localStorage.getItem("user");
-export const DoctorForm: React.FC<DoctorFormProps> = ({
 
-  currentUserId = storedUser ? JSON.parse(storedUser).userId : 1, // Default to 1 if not provided
-  onCancel,
-  onSuccess,
-}) => {
-  const [form] = Form.useForm();
-  const [submitting, setSubmitting] = useState<boolean>(false);
-  const [branches, setBranches] = useState<{ id: number; branchName: string }[]>([]);
-  const [departments, setDepartments] = useState<{ id: number; name: string }[]>([]);
-  const [users, setUsers] = useState<{ id: number; docname: string }[]>([]);
+interface OptionItem {
+  id: number;
+  label: string;
+}
 
-  useEffect(() => {
-    loadDropdownOptions();
-    form.resetFields();
-    form.setFieldsValue({ isActive: true });
-  }, [form]);
+const initialForm: CreateDoctorDto = {
+  branchId: 0,
+  userId: 0,
+  departmentId: undefined,
+  specialization: "",
+  licenseNumber: "",
+  consultationFee: undefined,
+  isActive: true,
+};
 
-  const loadDropdownOptions = async () => {
-    try {
-      const [branchRes, deptRes, userRes] = await Promise.all([
-        getBranch(),
-        getDepartment(),
-        getDoctorsdropdown(),
-      ]);
+const notify = (text: string) => window.alert(text);
 
-      const rawUsers = Array.isArray(userRes) ? userRes : userRes?.data || [];
-      const rawBranches = Array.isArray(branchRes) ? branchRes : branchRes?.data || [];
-      const rawDepartments = Array.isArray(deptRes) ? deptRes : deptRes?.data || [];
+export const DoctorForm: React.FC<DoctorFormProps> = ({ currentUserId = 1, onCancel, onSuccess }) => {
+  const [formData, setFormData] = useState<CreateDoctorDto>(initialForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [branches, setBranches] = useState<OptionItem[]>([]);
+  const [departments, setDepartments] = useState<OptionItem[]>([]);
+  const [users, setUsers] = useState<OptionItem[]>([]);
 
-      setUsers(
-        rawUsers.map((u: any) => ({
-          id: Number(u.docId ?? u.id),
-          docname: u.docname ?? u.name ?? u.fullName ?? `User #${u.id}`,
-        }))
-      );
-
-      setBranches(
-        rawBranches.map((b: any) => ({
-          id: Number(b.id ?? b.branchId ?? b.branch_id),
-          branchName: b.branchName ?? b.name ?? b.title ?? `Branch #${b.id}`,
-        }))
-      );
-
-      setDepartments(
-        rawDepartments.map((d: any) => ({
-          id: Number(d.id ?? d.departmentId ?? d.department_id),
-          name: d.name ?? `Dept #${d.id}`,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to load options:", error);
-      message.error("Failed to load dropdown options.");
-    }
+  const updateField = <K extends keyof CreateDoctorDto>(field: K, value: CreateDoctorDto[K]) => {
+    setFormData((previous) => ({ ...previous, [field]: value }));
   };
 
-  const handleSubmit = async () => {
+  useEffect(() => {
+    const loadDropdownOptions = async () => {
+      try {
+        const [branchRes, deptRes, userRes] = await Promise.all([getBranch(), getDepartment(), getDoctorsdropdown()]);
+        const rawUsers = (Array.isArray(userRes) ? userRes : userRes?.data || []) as Record<string, unknown>[];
+        const rawBranches = (Array.isArray(branchRes) ? branchRes : branchRes?.data || []) as Record<string, unknown>[];
+        const rawDepartments = (Array.isArray(deptRes) ? deptRes : deptRes?.data || []) as Record<string, unknown>[];
+        setUsers(rawUsers.map((user) => ({ id: Number(user.docId ?? user.id), label: String(user.docname ?? user.name ?? user.fullName ?? `User #${user.id}`) })));
+        setBranches(rawBranches.map((branch) => ({ id: Number(branch.id ?? branch.branchId ?? branch.branch_id), label: String(branch.branchName ?? branch.name ?? branch.title ?? `Branch #${branch.id}`) })));
+        setDepartments(rawDepartments.map((department) => ({ id: Number(department.id ?? department.departmentId ?? department.department_id), label: String(department.name ?? `Department #${department.id}`) })));
+      } catch (error) {
+        console.error("Failed to load options:", error);
+        notify("Failed to load dropdown options.");
+      }
+    };
+    loadDropdownOptions();
+  }, []);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!formData.userId || !formData.branchId) {
+      notify("Please select a user account and branch.");
+      return;
+    }
+    setSubmitting(true);
     try {
-      const values = await form.validateFields();
-      setSubmitting(true);
-
-      const createPayload: CreateDoctorDto = {
-        branchId: values.branchId,
-        userId: values.userId,
-        departmentId: values.departmentId,
-        specialization: values.specialization,
-        licenseNumber: values.licenseNumber,
-        consultationFee: values.consultationFee,
-        isActive: values.isActive ?? true,
-        createBy: currentUserId,
-      };
-
-      await createDoctor(createPayload);
-      message.success("Doctor record created successfully");
+      await createDoctor({ ...formData, createBy: currentUserId });
+      notify("Doctor record created successfully");
       onSuccess();
-    } catch (error: any) {
-      if (error?.errorFields) return;
+    } catch (error) {
       console.error("Form submit error:", error);
-      message.error("Failed to create doctor record.");
+      notify("Failed to create doctor record.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <Card
-      bordered={false}
-      style={{
-        borderRadius: "16px",
-        boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02)",
-      }}
-      bodyStyle={{ padding: "28px" }}
-    >
-      {/* Header Section */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: "10px",
-              background: "#eff6ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <MedicineBoxOutlined style={{ color: "#3b82f6", fontSize: "22px" }} />
-          </div>
-          <div>
-            <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#0f172a" }}>
-              Add New Doctor
-            </Title>
-            <Text type="secondary" style={{ fontSize: "13px" }}>
-              Fill in the required fields to link a user account as a doctor.
-            </Text>
-          </div>
-        </div>
-
-        {/* Header Action Buttons */}
-        <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={onCancel} style={{ borderRadius: "8px", fontWeight: 500 }}>
-            Back
-          </Button>
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            loading={submitting}
-            onClick={handleSubmit}
-            style={{
-              borderRadius: "8px",
-              fontWeight: 500,
-              background: "#3b82f6",
-              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-            }}
-          >
-            Save Doctor
-          </Button>
-        </Space>
-      </div>
-
-      <Form form={form} layout="vertical" requiredMark="optional">
-        {/* Core Mandatory Relations */}
-        <Text strong style={{ color: "#334155", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-          Required Associations
-        </Text>
-        <Divider style={{ margin: "8px 0 20px 0" }} />
-
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="userId"
-              label={<Text strong style={{ color: "#475569" }}>Select User Account</Text>}
-              rules={[{ required: true, message: "Please select a user account" }]}
-            >
-              <Select
-                showSearch
-                size="large"
-                placeholder="Select User"
-                suffixIcon={<UserOutlined style={{ color: "#94a3b8" }} />}
-                filterOption={(input, option) =>
-                  String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                }
-                options={users.map((u) => ({
-                  value: u.id,
-                  label: u.docname,
-                }))}
-              />
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="branchId"
-              label={<Text strong style={{ color: "#475569" }}>Branch Location</Text>}
-              rules={[{ required: true, message: "Please select a branch" }]}
-            >
-              <Select
-                showSearch
-                size="large"
-                placeholder="Select Branch"
-                suffixIcon={<BankOutlined style={{ color: "#94a3b8" }} />}
-                filterOption={(input, option) =>
-                  String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                }
-                options={branches.map((b) => ({
-                  value: b.id,
-                  label: b.branchName,
-                }))}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        {/* Practice & Qualifications */}
-        <Text strong style={{ color: "#334155", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-          Doctor Details (Optional)
-        </Text>
-        <Divider style={{ margin: "8px 0 20px 0" }} />
-
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="departmentId"
-              label={<Text strong style={{ color: "#475569" }}>Department</Text>}
-            >
-              <Select
-                showSearch
-                allowClear
-                size="large"
-                placeholder="Select Department"
-                suffixIcon={<AppstoreOutlined style={{ color: "#94a3b8" }} />}
-                filterOption={(input, option) =>
-                  String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                }
-                options={departments.map((d) => ({
-                  value: d.id,
-                  label: d.name,
-                }))}
-              />
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="specialization"
-              label={<Text strong style={{ color: "#475569" }}>Specialization</Text>}
-            >
-              <Input
-                placeholder="e.g. Cardiology, Pediatrics"
-                size="large"
-                style={{ borderRadius: "8px" }}
-              />
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="licenseNumber"
-              label={<Text strong style={{ color: "#475569" }}>License Number</Text>}
-            >
-              <Input
-                prefix={<IdcardOutlined style={{ color: "#94a3b8" }} />}
-                placeholder="MED-XXXXX"
-                size="large"
-                style={{ borderRadius: "8px", fontFamily: "monospace" }}
-              />
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} md={12}>
-            <Form.Item
-  name="consultationFee"
-  label={<Text strong style={{ color: "#475569" }}>Consultation Fee (₹)</Text>}
->
-  <InputNumber
-    style={{ width: "100%" }}
-    min={0}
-    prefix="₹"
-    placeholder="0.00"
-    formatter={(value) =>
-      value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""
-    }
-    parser={(value) => Number(value?.replace(/₹\s?|(,*)/g, "") || 0)}
-  />
-</Form.Item>
-          </Col>
-        </Row>
-
-        {/* Status */}
-        <Divider style={{ margin: "8px 0 20px 0" }} />
-        <Row justify="space-between" align="middle">
-          <Col>
-            <div>
-              <Text strong style={{ color: "#1e293b" }}>Is Active?</Text>
-              <div style={{ fontSize: "12px", color: "#64748b" }}>
-                Active doctors are visible in operational selection lists.
-              </div>
+    <div className="doctor-form-page p-2 p-md-4 bg-light min-vh-100">
+      <Card className="doctor-form-card border-0 shadow-sm rounded-4 mx-auto" style={{ maxWidth: 1000 }}>
+        <Card.Body className="p-3 p-md-4">
+          <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+            <div className="d-flex align-items-center gap-3">
+              <div className="doctor-form-icon"><MedicineBoxOutlined /></div>
+              <div><h4 className="mb-1 fw-bold text-dark">Add New Doctor</h4><p className="text-muted mb-0 small">Fill in the required fields to link a user account as a doctor.</p></div>
             </div>
-          </Col>
-          <Col>
-            <Form.Item name="isActive" valuePropName="checked" style={{ margin: 0 }}>
-              <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-            </Form.Item>
-          </Col>
-        </Row>
+            <div className="d-flex gap-2">
+              <Button variant="outline-secondary" type="button" onClick={onCancel}><ArrowLeftOutlined /> Back</Button>
+              <Button variant="primary" type="submit" form="doctor-form" disabled={submitting} className="d-flex align-items-center gap-2">{submitting && <Spinner animation="border" size="sm" />}<SaveOutlined /> Save Doctor</Button>
+            </div>
+          </div>
 
-        {/* Bottom Actions */}
-        <Divider style={{ margin: "24px 0 20px 0" }} />
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-          <Button onClick={onCancel} style={{ borderRadius: "8px", fontWeight: 500 }}>
-            Cancel
-          </Button>
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            loading={submitting}
-            onClick={handleSubmit}
-            style={{
-              borderRadius: "8px",
-              fontWeight: 500,
-              background: "#3b82f6",
-              boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-            }}
-          >
-            Create Doctor Profile
-          </Button>
-        </div>
-      </Form>
-    </Card>
+          <Form id="doctor-form" onSubmit={handleSubmit}>
+            <div className="form-section-heading mb-3"><span className="section-icon"><UserOutlined /></span><div><strong>Required Associations</strong><small>Link the doctor to a user account and branch</small></div></div>
+            <Row className="g-3">
+              <Col xs={12} md={6}><Form.Group><Form.Label><UserOutlined /> Select User Account</Form.Label><Form.Select required value={formData.userId || ""} onChange={(e) => updateField("userId", Number(e.target.value))}><option value="">Select user</option>{users.map((user) => <option key={user.id} value={user.id}>{user.label}</option>)}</Form.Select></Form.Group></Col>
+              <Col xs={12} md={6}><Form.Group><Form.Label><BankOutlined /> Branch Location</Form.Label><Form.Select required value={formData.branchId || ""} onChange={(e) => updateField("branchId", Number(e.target.value))}><option value="">Select branch</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.label}</option>)}</Form.Select></Form.Group></Col>
+            </Row>
+
+            <hr className="my-4" />
+            <div className="form-section-heading mb-3"><span className="section-icon"><ApartmentOutlined /></span><div><strong>Doctor Details</strong><small>Optional practice and qualification information</small></div></div>
+            <Row className="g-3">
+              <Col xs={12} md={6}><Form.Group><Form.Label>Department</Form.Label><Form.Select value={formData.departmentId || ""} onChange={(e) => updateField("departmentId", e.target.value ? Number(e.target.value) : undefined)}><option value="">Select department</option>{departments.map((department) => <option key={department.id} value={department.id}>{department.label}</option>)}</Form.Select></Form.Group></Col>
+              <Col xs={12} md={6}><Form.Group><Form.Label>Specialization</Form.Label><Form.Control value={formData.specialization || ""} onChange={(e) => updateField("specialization", e.target.value)} placeholder="e.g. Cardiology, Pediatrics" /></Form.Group></Col>
+              <Col xs={12} md={6}><Form.Group><Form.Label>License Number</Form.Label><Form.Control value={formData.licenseNumber || ""} onChange={(e) => updateField("licenseNumber", e.target.value)} placeholder="MED-XXXXX" /></Form.Group></Col>
+              <Col xs={12} md={6}><Form.Group><Form.Label>Consultation Fee (INR)</Form.Label><Form.Control type="number" min={0} step="0.01" value={formData.consultationFee ?? ""} onChange={(e) => updateField("consultationFee", e.target.value ? Number(e.target.value) : undefined)} placeholder="0.00" /></Form.Group></Col>
+            </Row>
+
+            <hr className="my-4" />
+            <div className="setting-tile d-flex justify-content-between align-items-center"><div><strong className="d-block text-dark">Is Active?</strong><small className="text-muted">Active doctors are visible in operational selection lists.</small></div><Form.Check type="switch" checked={formData.isActive} onChange={(e) => updateField("isActive", e.target.checked)} /></div>
+            <hr className="my-4" />
+            <div className="d-flex justify-content-end gap-2 flex-wrap"><Button variant="outline-secondary" type="button" onClick={onCancel}>Cancel</Button><Button variant="primary" type="submit" disabled={submitting} className="d-flex align-items-center gap-2">{submitting && <Spinner animation="border" size="sm" />}<SaveOutlined /> Create Doctor Profile</Button></div>
+          </Form>
+        </Card.Body>
+      </Card>
+    </div>
   );
 };
 
