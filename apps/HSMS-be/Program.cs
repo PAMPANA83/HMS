@@ -170,7 +170,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")  // Your React dev server
+        policy.WithOrigins("http://hsms.runasp.net")  // Your React dev server
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials(); // If using auth cookies/JWT
@@ -182,15 +182,15 @@ var app = builder.Build();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseCors("AllowReactApp");
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();     // serve generated Swagger as JSON
     app.UseSwaggerUI(options =>  // Serves Swagger UI at /swagger
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Hospital API v1");
         options.RoutePrefix = "swagger";  // Access at /swagger
     });   // serve Swagger UI
-}
+//}
 
 app.UseHttpsRedirection();
 app.UseRouting();
